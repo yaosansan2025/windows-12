@@ -180,6 +180,20 @@
     body.light #desktop-weather { background: #ffffff66; border-color: #768ba330; }
     @media(max-width:800px) { .bloom { width: 110vw; left: 58%; } #desktop-weather { bottom: 103px; left: 15px; } }
     @media(max-width:560px) { .bloom { width: 150vw; left: 61%; } .desktop-icons { top: 28px; left: 8px; gap: 6px; } #desktop-weather { bottom: 88px; left: 11px; padding: 6px 8px; } #desktop-weather strong { font-size: 9px; } #desktop-weather small { font-size: 8px; } }
+    /* Battery appears only when the browser provides a usable hardware reading. */
+    .battery-reading { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 11px; font-variant-numeric: tabular-nums; }
+    .battery-reading[hidden] { display: none; }
+    .tray-button .battery-state { display: none; }
+    .quick-footer { justify-content: flex-end; }
+    .quick-footer #quick-battery { margin-right: auto; }
+    .battery-reading .battery-icon { width: 18px; height: 18px; }
+    .battery-reading .battery-fill { fill: currentColor; stroke: none; transition: width .35s ease; }
+    .battery-reading .battery-bolt { display: none; fill: var(--blue); stroke: var(--panel-solid); stroke-width: 1.5; paint-order: stroke fill; }
+    .battery-reading.charging .battery-bolt { display: block; }
+    .battery-reading.charging { color: var(--blue); }
+    .battery-reading.low:not(.charging) { color: #ffab91; }
+    .quick-footer #quick-battery { font-size: 11px; }
+    @media(max-width:560px) { .tray-button .battery-reading { gap: 2px; font-size: 10px; } .tray-button .battery-icon { display: inline-block !important; width: 15px; height: 15px; } }
   </style>
 </head>
 <body class="session-locked">
@@ -196,7 +210,7 @@
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="m10 2-.7 3-2 .9-2.8-.9-2 3.5 2.2 2.1v2.8l-2.2 2.1 2 3.5 2.8-.9 2 .9.7 3h4l.7-3 2-.9 2.8.9 2-3.5-2.2-2.1v-2.8l2.2-2.1-2-3.5-2.8.9-2-.9-.7-3Z"/><circle cx="12" cy="12" r="3.4"/></symbol>
     <symbol id="i-volume" viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9Zm13-1a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
     <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0m-10 4a5 5 0 0 1 6 0"/><circle cx="12" cy="20" r=".5" fill="currentColor"/></symbol>
-    <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4M5 10h11v4H5Z"/></symbol>
+    <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10v4"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
     <symbol id="i-minimize" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-maximize" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1"/></symbol>
@@ -267,7 +281,7 @@
     <div class="clock-tray"><button id="clock-button" class="clock-button" data-panel="calendar-panel" aria-expanded="false" aria-controls="calendar-panel" aria-label="Open calendar"><span id="tray-time"></span><small id="tray-date"></small></button><button class="icon-button notification-button" data-panel="notification-panel" aria-expanded="false" aria-controls="notification-panel" aria-label="Open notifications"><svg class="icon" style="width:17px"><use href="#i-bell"/></svg></button></div>
     <section id="start-menu" class="panel bottom-panel glass" aria-label="Start menu" inert><div class="row between" style="margin-bottom:20px"><div><h2 style="font-size:20px">Start</h2></div><span class="avatar">U</span></div><label class="start-search"><svg class="icon"><use href="#i-search"/></svg><input id="start-search" type="search" placeholder="Search apps and settings" aria-label="Search apps" autocomplete="off"><span class="badge">⌕</span></label><div class="row between start-heading"><h3>Pinned</h3></div><div id="app-grid" class="app-grid"></div><section class="recommended"><div class="row between start-heading"><h3>Suggested</h3></div><div class="recommend-grid"><button class="recommend-item" data-app="notepad"><svg class="icon"><use href="#i-notepad"/></svg><span><strong>Notepad</strong><small>Open your notes</small></span></button><button class="recommend-item" data-app="photos"><svg class="icon"><use href="#i-palette"/></svg><span><strong>Photos</strong><small>Choose a wallpaper</small></span></button></div></section><footer class="start-bottom"><button class="row" data-action="lock"><span class="avatar">U</span>User <svg class="icon" style="width:12px;color:var(--muted)"><use href="#i-right"/></svg></button><div class="power-options"><button class="icon-button" data-action="lock" aria-label="Sleep"><svg class="icon" style="width:17px"><use href="#i-moon"/></svg></button><button class="icon-button" data-action="restart" aria-label="Restart"><svg class="icon" style="width:17px"><use href="#i-refresh"/></svg></button><button class="icon-button" data-action="signout" aria-label="Sign out"><svg class="icon" style="width:17px"><use href="#i-power"/></svg></button></div></footer></section>
     <section id="calendar-panel" class="panel bottom-panel glass" aria-label="Calendar" inert><div class="row between"><p class="calendar-current" id="calendar-current"></p><button class="icon-button" data-close-panel aria-label="Close calendar"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="row between calendar-nav"><strong id="calendar-month"></strong><div class="row" style="gap:3px"><button class="icon-button" id="calendar-prev" aria-label="Previous month"><svg class="icon"><use href="#i-left"/></svg></button><button class="text-button" id="calendar-today">Today</button><button class="icon-button" id="calendar-next" aria-label="Next month"><svg class="icon"><use href="#i-right"/></svg></button></div></div><div id="calendar-grid" class="calendar-grid"></div><div class="calendar-agenda"><strong id="agenda-date">Today</strong><span>No events scheduled.</span></div></section>
-    <section id="quick-panel" class="panel bottom-panel glass" aria-label="Quick settings" inert><div class="panel-title"><h3>Quick settings</h3></div><div class="quick-tiles"><button class="quick-tile" data-quick="Wi-Fi" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-wifi"/></svg></span>Wi-Fi</button><button class="quick-tile" data-quick="Bluetooth" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-bluetooth"/></svg></span>Bluetooth</button><button class="quick-tile" data-quick="Focus" aria-pressed="false"><span class="tile-icon"><svg class="icon"><use href="#i-moon"/></svg></span>Focus</button></div><label class="volume-row"><svg class="icon"><use href="#i-volume"/></svg><input id="volume" type="range" min="0" max="100" value="65" aria-label="Demo volume"><span id="volume-value" style="font-size:11px;width:24px">65</span></label><div class="setting-row"><span><strong>Focus session</strong><small id="focus-time">25:00</small></span><button id="focus-toggle" class="icon-button" aria-label="Start focus timer"><svg class="icon"><use href="#i-play"/></svg></button></div><div class="setting-row"><span><strong>Spatial audio</strong><small>Use headphones for best results</small></span><button class="toggle" id="spatial-toggle" role="switch" aria-checked="true" aria-label="Spatial audio"></button></div><div class="row between quick-footer"><span class="row"><svg class="icon" style="width:16px"><use href="#i-battery"/></svg>92% · Demo</span><button class="icon-button" data-app="settings" aria-label="Open settings"><svg class="icon" style="width:17px"><use href="#i-settings"/></svg></button></div></section>
+    <section id="quick-panel" class="panel bottom-panel glass" aria-label="Quick settings" inert><div class="panel-title"><h3>Quick settings</h3></div><div class="quick-tiles"><button class="quick-tile" data-quick="Wi-Fi" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-wifi"/></svg></span>Wi-Fi</button><button class="quick-tile" data-quick="Bluetooth" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-bluetooth"/></svg></span>Bluetooth</button><button class="quick-tile" data-quick="Focus" aria-pressed="false"><span class="tile-icon"><svg class="icon"><use href="#i-moon"/></svg></span>Focus</button></div><label class="volume-row"><svg class="icon"><use href="#i-volume"/></svg><input id="volume" type="range" min="0" max="100" value="65" aria-label="Demo volume"><span id="volume-value" style="font-size:11px;width:24px">65</span></label><div class="setting-row"><span><strong>Focus session</strong><small id="focus-time">25:00</small></span><button id="focus-toggle" class="icon-button" aria-label="Start focus timer"><svg class="icon"><use href="#i-play"/></svg></button></div><div class="setting-row"><span><strong>Spatial audio</strong><small>Use headphones for best results</small></span><button class="toggle" id="spatial-toggle" role="switch" aria-checked="true" aria-label="Spatial audio"></button></div><div class="row between quick-footer"><span id="quick-battery" class="battery-reading" hidden></span><button class="icon-button" data-app="settings" aria-label="Open settings"><svg class="icon" style="width:17px"><use href="#i-settings"/></svg></button></div></section>
     <section id="widgets-panel" class="panel glass" aria-label="Widgets" inert><div class="panel-title"><div><h2>Widgets</h2></div><button class="icon-button" data-close-panel aria-label="Close widgets"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="widget-grid"><article class="widget-card"><h3>Vancouver</h3><div class="row between" style="margin:20px 0"><span class="temperature">18°</span><span class="sun-art" style="width:28px;height:28px"></span></div><p>Partly cloudy<br>H: 20° &nbsp; L: 14°</p></article><button class="widget-card" data-action="calendar" style="text-align:left"><h3 id="widget-weekday"></h3><div class="mini-date" id="widget-day"></div><p id="widget-month"></p></button><article class="widget-card full"><div class="row between"><h3 style="margin:0">To do</h3><span id="todo-count" class="badge"></span></div><div id="todo-list" class="todo-list"></div><form id="todo-form" class="todo-form"><input id="todo-input" maxlength="140" aria-label="New to-do" placeholder="Add a task" required><button class="icon-button" type="submit" aria-label="Add to-do"><svg class="icon"><use href="#i-plus"/></svg></button></form></article><article class="widget-card full"><h3>News</h3><div class="news-item"><small>OFFLINE PREVIEW</small><p>Headlines will appear here when a news source is connected.</p></div><div class="news-item"><small>WIDGETS</small><p>Keep your tasks and calendar in view.</p></div></article></div><p class="panel-footnote">Weather is sample data. News is unavailable offline.</p></section>
     <aside id="copilot-panel" class="panel glass" aria-label="Copilot assistant" inert><header class="copilot-header row between"><div class="row"><span class="app-icon copilot"><svg class="icon"><use href="#i-copilot"/></svg></span><div><strong>Copilot</strong><small>Offline assistant demo</small></div></div><button class="icon-button" data-close-panel aria-label="Close Copilot"><svg class="icon"><use href="#i-close"/></svg></button></header><div id="copilot-messages" class="copilot-messages"><div class="copilot-welcome"><span class="app-icon copilot"><svg class="icon"><use href="#i-copilot"/></svg></span><h2>Copilot</h2><p>Ask about apps, settings, or focus sessions.</p></div><button class="suggestion" data-prompt="Help me focus"><svg class="icon"><use href="#i-moon"/></svg>Start a focus session</button><button class="suggestion" data-prompt="Personalize my space"><svg class="icon"><use href="#i-palette"/></svg>Change my wallpaper</button><button class="suggestion" data-prompt="What can I do here?"><svg class="icon"><use href="#i-copilot"/></svg>Show available apps</button></div><form id="copilot-form" class="copilot-form"><input id="copilot-input" maxlength="1000" placeholder="Ask Copilot" aria-label="Message Copilot" required autocomplete="off"><button class="icon-button" type="submit" aria-label="Send message"><svg class="icon" style="width:17px"><use href="#i-send"/></svg></button></form><p class="copilot-disclaimer">Replies are simulated and work offline.</p></aside>
     <div id="context-menu" class="panel glass" role="menu" aria-label="Desktop context menu" inert><button class="context-item" role="menuitem" data-action="refresh"><svg class="icon"><use href="#i-refresh"/></svg>Refresh</button><button class="context-item" role="menuitem" data-action="new-note"><svg class="icon"><use href="#i-plus"/></svg>New note</button><div class="divider" style="margin:5px 8px"></div><button class="context-item" role="menuitem" data-app="settings"><svg class="icon"><use href="#i-palette"/></svg>Personalize</button><button class="context-item" role="menuitem" data-action="display-settings"><svg class="icon"><use href="#i-pc"/></svg>Display settings</button></div>
@@ -344,6 +358,8 @@
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
     const escapeHTML = (value) => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const icon = (name) => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const batteryIcon = () => `<svg class="icon battery-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-battery"/><rect class="battery-fill" x="5" y="10" width="0" height="4" rx="1"/><path class="battery-bolt" d="m13 6-4 7h3l-1 5 5-8h-3z"/></svg>`;
+    const batteryReading = (id) => `<span id="${id}" class="battery-reading" hidden>${batteryIcon()}<span class="battery-percent"></span><span class="battery-state"></span></span>`;
     const appIcon = (name, emoji = '') => `<span class="app-icon ${name}">${emoji ? `<span class="emoji-icon">${emoji}</span>` : name === 'edge' ? '' : icon(name)}</span>`;
     const clamp = (n, min, max) => Math.min(Math.max(n, min), Math.max(min, max));
     const Storage = {
@@ -732,8 +748,48 @@
       return `<button class="task-button" ${attributes} aria-label="${escapeHTML(label)}">${appIcon(iconName,emoji)}<span class="tooltip">${escapeHTML(label)}</span></button>`;
     }
     function renderTaskbar() {
-      $('#taskbar').innerHTML = taskButton('start-menu','Start','panel','','start')+taskButton('start-menu','Search','panel','','search')+taskButton('widgets-panel','Widgets','panel','','widgets')+'<span class="dock-separator"></span>'+taskButton('files','Files','app')+taskButton('edge','Browser','app')+taskButton('copilot-panel','Copilot','panel','','copilot')+taskButton('settings','Settings','app')+'<span id="running-apps"></span><span class="dock-separator"></span><button class="tray-button" data-panel="quick-panel" aria-expanded="false" aria-controls="quick-panel" aria-label="Volume, Wi-Fi, and battery">'+icon('volume')+icon('wifi')+icon('battery')+'</button>';
+      $('#taskbar').innerHTML = taskButton('start-menu','Start','panel','','start')+taskButton('start-menu','Search','panel','','search')+taskButton('widgets-panel','Widgets','panel','','widgets')+'<span class="dock-separator"></span>'+taskButton('files','Files','app')+taskButton('edge','Browser','app')+taskButton('copilot-panel','Copilot','panel','','copilot')+taskButton('settings','Settings','app')+'<span id="running-apps"></span><span class="dock-separator"></span><button class="tray-button" data-panel="quick-panel" aria-expanded="false" aria-controls="quick-panel" aria-label="Volume and Wi-Fi">'+icon('volume')+icon('wifi')+batteryReading('tray-battery')+'</button>';
     }
+    // A browser cannot distinguish a battery-free desktop from a fully charged,
+    // plugged-in laptop when getBattery() returns its all-full fallback values.
+    const Battery = {
+      manager:null, seenRealReading:false,
+      async init() {
+        $('#quick-battery').innerHTML = batteryIcon()+'<span class="battery-percent"></span><span class="battery-state"></span>';
+        if (typeof navigator.getBattery !== 'function') return;
+        try {
+          this.manager = await navigator.getBattery();
+          const update = () => this.render();
+          ['levelchange','chargingchange','chargingtimechange','dischargingtimechange'].forEach(type => this.manager.addEventListener(type,update));
+          document.addEventListener('visibilitychange', () => { if (!document.hidden) this.render(); });
+          update();
+        } catch { this.hide(); }
+      },
+      hide() {
+        $('#tray-battery').hidden = true;
+        $('#quick-battery').hidden = true;
+        $('.tray-button').setAttribute('aria-label','Volume and Wi-Fi');
+      },
+      render() {
+        const {level,charging,chargingTime,dischargingTime} = this.manager;
+        const valid = Number.isFinite(level) && level >= 0 && level <= 1;
+        const ambiguousFull = level === 1 && charging && chargingTime === 0 && !Number.isFinite(dischargingTime);
+        if (valid && !ambiguousFull) this.seenRealReading = true;
+        if (!valid || (ambiguousFull && !this.seenRealReading)) { this.hide(); return; }
+        const percent = Math.round(level * 100);
+        const state = charging ? 'Charging' : 'On battery';
+        for (const reading of $$('.battery-reading')) {
+          reading.hidden = false;
+          reading.classList.toggle('charging',charging);
+          reading.classList.toggle('low',percent <= 20);
+          $('.battery-fill',reading).setAttribute('width',String(12 * level));
+          $('.battery-percent',reading).textContent = `${percent}%`;
+          $('.battery-state',reading).textContent = `· ${state}`;
+          reading.title = `Battery ${percent}% · ${state}`;
+        }
+        $('.tray-button').setAttribute('aria-label',`Volume, Wi-Fi, battery ${percent}%, ${state.toLowerCase()}`);
+      }
+    };
     function renderAppGrid(query='') {
       const matches=pinnedApps.filter(([,label])=>label.toLowerCase().includes(query.toLowerCase()));
       $('#app-grid').innerHTML=matches.length?matches.map(([id,label,iconName])=>`<button class="grid-app" data-app="${id}">${appIcon(iconName)}<span>${label}</span></button>`).join(''):'<p class="empty-search">No matching apps.</p>';
@@ -1094,7 +1150,7 @@
       particle.style.cssText=`left:${12+Math.random()*80}%;top:${20+Math.random()*80}%;--duration:${12+Math.random()*15}s;--delay:${-Math.random()*27}s`;
       $('#particles').append(particle);
     }
-    renderTaskbar();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
+    renderTaskbar();Battery.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
     setInterval(updateClock,1000);
     Session.startBoot();
   })();

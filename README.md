@@ -32,6 +32,7 @@ You can also upload `index.html` to any static website host. Serve it as the sit
 
 - Boot and sign-in are client-side demonstrations, not real firmware or authentication. The demo password is included in the HTML source; it does not protect files or accounts. Signing in makes no network request and requires no backend.
 - The clock and calendar use the browser's local date and time.
+- Battery percentage and charging status use the browser's Battery Status API and update as the device reports changes. The indicator is hidden when the API is unsupported, blocked, or provides no usable reading. It also hides the ambiguous full/plugged-in fallback commonly reported by battery-free desktops until a real battery change is observed; a fully charged laptop can initially be hidden for the same reason. Once a battery is detected, it stays visible when fully charged during that page session. Browser and device support varies; Safari does not expose this API.
 - Preferences and editable demo content use browser storage where available; storage behavior can vary when opening a local file.
 - Copilot replies are local scripted demo responses, not a connected AI service.
 - Weather, news, cloud sync, device continuity, biometric login, and system controls are illustrative UI. They do not access accounts or change operating-system settings.
