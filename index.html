@@ -194,6 +194,24 @@
     .battery-reading.low:not(.charging) { color: #ffab91; }
     .quick-footer #quick-battery { font-size: 11px; }
     @media(max-width:560px) { .tray-button .battery-reading { gap: 2px; font-size: 10px; } .tray-button .battery-icon { display: inline-block !important; width: 15px; height: 15px; } }
+    /* Optional API connection stays in this tab; the shipped key is blank. */
+    .copilot-header { flex-shrink: 0; gap: 8px; }
+    .copilot-header > .row { min-width: 0; }
+    .copilot-header .header-actions { gap: 2px; flex-shrink: 0; }
+    .copilot-connection { border-bottom: 1px solid var(--border); max-height: 55%; overflow: auto; flex-shrink: 0; }
+    .copilot-connection summary { padding: 12px 20px; cursor: pointer; font-size: 11px; color: var(--muted); }
+    #copilot-connection-form { padding: 0 20px 15px; display: grid; gap: 10px; }
+    #copilot-connection-form label { display: grid; gap: 5px; font-size: 10px; color: var(--muted); }
+    #copilot-connection-form input, #copilot-connection-form select { width: 100%; font-size: 11px; padding: 9px 10px; }
+    #copilot-api-fields { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
+    #copilot-api-fields[hidden], #copilot-key-label[hidden], #copilot-stop[hidden], #copilot-send[hidden], .copilot-welcome[hidden], .suggestion[hidden] { display: none; }
+    .copilot-config-note, #copilot-connection-status { font-size: 10px; color: var(--muted); line-height: 1.6; }
+    #copilot-connection-status { min-height: 16px; }
+    #copilot-apply { justify-self: start; padding: 8px 12px; font-size: 10px; }
+    .copilot-messages { min-height: 70px; }
+    .bubble.pending { color: var(--muted); }
+    .bubble.error { border-color: #e3a08c66; }
+    .copilot-form, .copilot-disclaimer { flex-shrink: 0; }
   </style>
 </head>
 <body class="session-locked">
@@ -283,7 +301,35 @@
     <section id="calendar-panel" class="panel bottom-panel glass" aria-label="Calendar" inert><div class="row between"><p class="calendar-current" id="calendar-current"></p><button class="icon-button" data-close-panel aria-label="Close calendar"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="row between calendar-nav"><strong id="calendar-month"></strong><div class="row" style="gap:3px"><button class="icon-button" id="calendar-prev" aria-label="Previous month"><svg class="icon"><use href="#i-left"/></svg></button><button class="text-button" id="calendar-today">Today</button><button class="icon-button" id="calendar-next" aria-label="Next month"><svg class="icon"><use href="#i-right"/></svg></button></div></div><div id="calendar-grid" class="calendar-grid"></div><div class="calendar-agenda"><strong id="agenda-date">Today</strong><span>No events scheduled.</span></div></section>
     <section id="quick-panel" class="panel bottom-panel glass" aria-label="Quick settings" inert><div class="panel-title"><h3>Quick settings</h3></div><div class="quick-tiles"><button class="quick-tile" data-quick="Wi-Fi" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-wifi"/></svg></span>Wi-Fi</button><button class="quick-tile" data-quick="Bluetooth" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-bluetooth"/></svg></span>Bluetooth</button><button class="quick-tile" data-quick="Focus" aria-pressed="false"><span class="tile-icon"><svg class="icon"><use href="#i-moon"/></svg></span>Focus</button></div><label class="volume-row"><svg class="icon"><use href="#i-volume"/></svg><input id="volume" type="range" min="0" max="100" value="65" aria-label="Demo volume"><span id="volume-value" style="font-size:11px;width:24px">65</span></label><div class="setting-row"><span><strong>Focus session</strong><small id="focus-time">25:00</small></span><button id="focus-toggle" class="icon-button" aria-label="Start focus timer"><svg class="icon"><use href="#i-play"/></svg></button></div><div class="setting-row"><span><strong>Spatial audio</strong><small>Use headphones for best results</small></span><button class="toggle" id="spatial-toggle" role="switch" aria-checked="true" aria-label="Spatial audio"></button></div><div class="row between quick-footer"><span id="quick-battery" class="battery-reading" hidden></span><button class="icon-button" data-app="settings" aria-label="Open settings"><svg class="icon" style="width:17px"><use href="#i-settings"/></svg></button></div></section>
     <section id="widgets-panel" class="panel glass" aria-label="Widgets" inert><div class="panel-title"><div><h2>Widgets</h2></div><button class="icon-button" data-close-panel aria-label="Close widgets"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="widget-grid"><article class="widget-card"><h3>Vancouver</h3><div class="row between" style="margin:20px 0"><span class="temperature">18°</span><span class="sun-art" style="width:28px;height:28px"></span></div><p>Partly cloudy<br>H: 20° &nbsp; L: 14°</p></article><button class="widget-card" data-action="calendar" style="text-align:left"><h3 id="widget-weekday"></h3><div class="mini-date" id="widget-day"></div><p id="widget-month"></p></button><article class="widget-card full"><div class="row between"><h3 style="margin:0">To do</h3><span id="todo-count" class="badge"></span></div><div id="todo-list" class="todo-list"></div><form id="todo-form" class="todo-form"><input id="todo-input" maxlength="140" aria-label="New to-do" placeholder="Add a task" required><button class="icon-button" type="submit" aria-label="Add to-do"><svg class="icon"><use href="#i-plus"/></svg></button></form></article><article class="widget-card full"><h3>News</h3><div class="news-item"><small>OFFLINE PREVIEW</small><p>Headlines will appear here when a news source is connected.</p></div><div class="news-item"><small>WIDGETS</small><p>Keep your tasks and calendar in view.</p></div></article></div><p class="panel-footnote">Weather is sample data. News is unavailable offline.</p></section>
-    <aside id="copilot-panel" class="panel glass" aria-label="Copilot assistant" inert><header class="copilot-header row between"><div class="row"><span class="app-icon copilot"><svg class="icon"><use href="#i-copilot"/></svg></span><div><strong>Copilot</strong><small>Offline assistant demo</small></div></div><button class="icon-button" data-close-panel aria-label="Close Copilot"><svg class="icon"><use href="#i-close"/></svg></button></header><div id="copilot-messages" class="copilot-messages"><div class="copilot-welcome"><span class="app-icon copilot"><svg class="icon"><use href="#i-copilot"/></svg></span><h2>Copilot</h2><p>Ask about apps, settings, or focus sessions.</p></div><button class="suggestion" data-prompt="Help me focus"><svg class="icon"><use href="#i-moon"/></svg>Start a focus session</button><button class="suggestion" data-prompt="Personalize my space"><svg class="icon"><use href="#i-palette"/></svg>Change my wallpaper</button><button class="suggestion" data-prompt="What can I do here?"><svg class="icon"><use href="#i-copilot"/></svg>Show available apps</button></div><form id="copilot-form" class="copilot-form"><input id="copilot-input" maxlength="1000" placeholder="Ask Copilot" aria-label="Message Copilot" required autocomplete="off"><button class="icon-button" type="submit" aria-label="Send message"><svg class="icon" style="width:17px"><use href="#i-send"/></svg></button></form><p class="copilot-disclaimer">Replies are simulated and work offline.</p></aside>
+    <aside id="copilot-panel" class="panel glass" aria-label="Copilot assistant" inert>
+      <header class="copilot-header row between">
+        <div class="row"><span class="app-icon copilot"><svg class="icon"><use href="#i-copilot"/></svg></span><div><strong>Copilot</strong><small id="copilot-mode-label">Offline assistant demo</small></div></div>
+        <div class="row header-actions"><button id="copilot-clear" class="icon-button" aria-label="New chat" title="New chat"><svg class="icon"><use href="#i-plus"/></svg></button><button class="icon-button" data-close-panel aria-label="Close Copilot"><svg class="icon"><use href="#i-close"/></svg></button></div>
+      </header>
+      <details id="copilot-connection" class="copilot-connection">
+        <summary>Connection settings</summary>
+        <form id="copilot-connection-form">
+          <label>Mode<select id="copilot-mode"><option value="demo">Offline demo</option><option value="api">API connection</option></select></label>
+          <fieldset id="copilot-api-fields" hidden disabled>
+            <label>Chat completions endpoint<input id="copilot-endpoint" type="text" inputmode="url" placeholder="https://your-server.example/api/chat" maxlength="2048" autocomplete="off" spellcheck="false"></label>
+            <label>Model (if required)<input id="copilot-model" type="text" placeholder="your-model-name" maxlength="200" autocomplete="off" spellcheck="false"></label>
+            <label>Authentication<select id="copilot-auth"><option value="none">No key · server proxy</option><option value="bearer">Bearer token</option><option value="api-key">api-key header · Azure OpenAI</option></select></label>
+            <label id="copilot-key-label" hidden>API key<input id="copilot-api-key" type="password" placeholder="your-api-key" value="" maxlength="4096" autocomplete="off" spellcheck="false" disabled></label>
+            <p class="copilot-config-note">Use a server proxy for a public website. Settings and keys stay in this tab and reset on reload.</p>
+          </fieldset>
+          <button id="copilot-apply" class="secondary" type="submit">Apply connection</button>
+          <p id="copilot-connection-status" role="status">Offline demo is active.</p>
+        </form>
+      </details>
+      <div id="copilot-messages" class="copilot-messages" aria-label="Conversation" aria-busy="false">
+        <div class="copilot-welcome"><span class="app-icon copilot"><svg class="icon"><use href="#i-copilot"/></svg></span><h2>Copilot</h2><p id="copilot-welcome-text">Ask about apps, settings, or focus sessions.</p></div>
+        <button class="suggestion" data-prompt="Help me focus"><svg class="icon"><use href="#i-moon"/></svg>Start a focus session</button>
+        <button class="suggestion" data-prompt="Personalize my space"><svg class="icon"><use href="#i-palette"/></svg>Change my wallpaper</button>
+        <button class="suggestion" data-prompt="What can I do here?"><svg class="icon"><use href="#i-copilot"/></svg>Show available apps</button>
+      </div>
+      <form id="copilot-form" class="copilot-form"><input id="copilot-input" maxlength="4000" placeholder="Ask Copilot" aria-label="Message Copilot" required autocomplete="off"><button id="copilot-send" class="icon-button" type="submit" aria-label="Send message"><svg class="icon" style="width:17px"><use href="#i-send"/></svg></button><button id="copilot-stop" class="icon-button" type="button" aria-label="Stop response" title="Stop response" hidden><svg class="icon" style="width:17px"><use href="#i-close"/></svg></button></form>
+      <p class="copilot-disclaimer" id="copilot-disclaimer">Replies are simulated and work offline.</p>
+    </aside>
     <div id="context-menu" class="panel glass" role="menu" aria-label="Desktop context menu" inert><button class="context-item" role="menuitem" data-action="refresh"><svg class="icon"><use href="#i-refresh"/></svg>Refresh</button><button class="context-item" role="menuitem" data-action="new-note"><svg class="icon"><use href="#i-plus"/></svg>New note</button><div class="divider" style="margin:5px 8px"></div><button class="context-item" role="menuitem" data-app="settings"><svg class="icon"><use href="#i-palette"/></svg>Personalize</button><button class="context-item" role="menuitem" data-action="display-settings"><svg class="icon"><use href="#i-pc"/></svg>Display settings</button></div>
     <section id="notification-panel" class="panel bottom-panel glass" aria-label="Notifications" inert><div class="panel-title"><h3>Notifications</h3><button class="text-button" id="clear-notifications">Clear all</button></div><div id="notification-list"></div></section>
     <div id="toast-stack" aria-live="polite" aria-relevant="additions"></div>
@@ -857,22 +903,144 @@
       Storage.write('todos',todos);
     }
 
-    // 10. Copilot is intentionally an offline demo, with deterministic replies.
+    // 10. Copilot defaults to an offline demo. API credentials stay in memory.
+    // The optional endpoint must speak the OpenAI Chat Completions JSON format.
     const Copilot = {
-      send(message) {
-        const text=message.trim();if(!text)return;
+      config:{mode:'demo',endpoint:'',model:'',auth:'none',apiKey:''},
+      history:[], pending:null,
+      init() {
+        this.syncFields();
+        $('#copilot-mode').addEventListener('change',()=>this.syncFields());
+        $('#copilot-auth').addEventListener('change',()=>this.syncFields());
+        $('#copilot-connection-form').addEventListener('input',()=>{
+          $('#copilot-connection-status').textContent='Select Apply connection to use these settings.';
+        });
+        $('#copilot-connection-form').addEventListener('submit',event=>{event.preventDefault();this.applyConnection();});
+        $('#copilot-clear').addEventListener('click',()=>this.reset());
+        $('#copilot-stop').addEventListener('click',()=>{
+          if(this.pending){this.pending.reason='stopped';this.pending.controller.abort();}
+        });
+      },
+      syncFields() {
+        const api=$('#copilot-mode').value==='api';
+        $('#copilot-api-fields').hidden=!api;
+        $('#copilot-api-fields').disabled=!api;
+        const needsKey=$('#copilot-auth').value!=='none';
+        $('#copilot-key-label').hidden=!needsKey;
+        $('#copilot-api-key').disabled=!api||!needsKey;
+      },
+      readConfig() {
+        const mode=$('#copilot-mode').value;
+        if(mode==='demo')return {mode,endpoint:'',model:'',auth:'none',apiKey:''};
+        const endpoint=$('#copilot-endpoint').value.trim();
+        if(!endpoint)throw new Error('Enter the full chat completions endpoint or a same-origin proxy path.');
+        let url;
+        try{url=new URL(endpoint,location.href);}catch{throw new Error('Enter a valid API endpoint URL.');}
+        const local=['localhost','127.0.0.1','[::1]'].includes(url.hostname);
+        if(url.protocol!=='https:'&&!(url.protocol==='http:'&&local))throw new Error('Use an HTTPS endpoint, or HTTP on localhost for development.');
+        if(url.username||url.password)throw new Error('Put API credentials in the key field, not in the endpoint URL.');
+        const auth=$('#copilot-auth').value;
+        const apiKey=auth==='none'?'':$('#copilot-api-key').value.trim();
+        if(auth!=='none'&&(!apiKey||apiKey.toLowerCase()==='your-api-key'))throw new Error('Enter an API key, or choose No key for a server proxy.');
+        return {mode,endpoint:url.href,model:$('#copilot-model').value.trim(),auth,apiKey};
+      },
+      applyConnection() {
+        if(this.pending)return;
+        try{
+          const config=this.readConfig();
+          this.config=config;
+          if(config.mode==='demo')$('#copilot-api-key').value='';
+          this.reset();
+          const api=config.mode==='api';
+          $('#copilot-mode-label').textContent=api?'API configured':'Offline assistant demo';
+          $('#copilot-disclaimer').textContent=api?'Messages go to your configured API. AI responses may be inaccurate.':'Replies are simulated and work offline.';
+          $('#copilot-welcome-text').textContent=api?'Ask a question to start a conversation with your configured model.':'Ask about apps, settings, or focus sessions.';
+          $('#copilot-connection-status').textContent=api?'API configured. Send a message to test the connection.':'Offline demo is active.';
+          $('#copilot-connection').open=false;
+          $('#copilot-input').focus({preventScroll:true});
+        }catch(error){$('#copilot-connection-status').textContent=error.message;}
+      },
+      reset() {
+        if(this.pending)return;
+        this.history=[];
+        $$('.bubble',$('#copilot-messages')).forEach(bubble=>bubble.remove());
+        $$('.copilot-welcome,.suggestion',$('#copilot-messages')).forEach(element=>element.hidden=false);
+        $('#copilot-messages').scrollTop=0;
+      },
+      append(role,text) {
         const messages=$('#copilot-messages');
-        const user=document.createElement('div');user.className='bubble user';user.textContent=text;messages.append(user);
-        const lower=text.toLowerCase();let reply;
-        if(/focus|productive|work/.test(lower))reply='Open Quick Settings from the taskbar and select Focus. The timer starts at 25 minutes. Select Focus again to pause it.';
-        else if(/personal|theme|wallpaper|color|colour|dark|light/.test(lower))reply='Open Settings from the taskbar to change the wallpaper, theme, or taskbar alignment. Your selections are saved in this browser.';
-        else if(/note|write|idea/.test(lower))reply='Open Notepad from the desktop or Start. Notes save automatically in this browser. Select “Save a copy” to download a text file.';
-        else if(/hello|hi\b|hey/.test(lower))reply='Hello, User. I can help you find apps and settings in this desktop demo.';
-        else reply='Open apps from Start, double-click desktop icons, or use the taskbar. Select the clock for Calendar and Widgets for tasks. This offline demo provides preset answers only.';
-        const assistant=document.createElement('div');assistant.className='bubble assistant';assistant.setAttribute('aria-live','polite');assistant.textContent=reply;messages.append(assistant);
-        $('#copilot-input').value='';messages.scrollTop=messages.scrollHeight;
-        // Keep long demo conversations from growing without bound.
+        const bubble=document.createElement('div');
+        bubble.className=`bubble ${role}`;bubble.textContent=text;
+        if(role==='assistant'){bubble.setAttribute('aria-live','polite');bubble.setAttribute('aria-atomic','true');}
+        messages.append(bubble);
         while($$('.bubble',messages).length>60)$('.bubble',messages).remove();
+        messages.scrollTop=messages.scrollHeight;
+        return bubble;
+      },
+      setBusy(busy) {
+        $('#copilot-input').disabled=busy;
+        $('#copilot-send').hidden=busy;
+        $('#copilot-stop').hidden=!busy;
+        $('#copilot-apply').disabled=busy;
+        $('#copilot-clear').disabled=busy;
+        $$('.suggestion').forEach(button=>button.disabled=busy);
+        $('#copilot-messages').setAttribute('aria-busy',String(busy));
+      },
+      demoReply(text) {
+        const lower=text.toLowerCase();
+        if(/focus|productive|work/.test(lower))return 'Open Quick Settings from the taskbar and select Focus. The timer starts at 25 minutes. Select Focus again to pause it.';
+        if(/personal|theme|wallpaper|color|colour|dark|light/.test(lower))return 'Open Settings from the taskbar to change the wallpaper, theme, or taskbar alignment. Your selections are saved in this browser.';
+        if(/note|write|idea/.test(lower))return 'Open Notepad from the desktop or Start. Notes save automatically in this browser. Select “Save a copy” to download a text file.';
+        if(/hello|hi\b|hey/.test(lower))return 'Hello, User. I can help you find apps and settings in this desktop demo.';
+        return 'Open apps from Start, double-click desktop icons, or use the taskbar. Select the clock for Calendar and Widgets for tasks. This offline demo provides preset answers only.';
+      },
+      readReply(data) {
+        const message=data?.choices?.[0]?.message;
+        const content=message?.content;
+        const text=typeof content==='string'?content:Array.isArray(content)?content.filter(part=>part?.type==='text'&&typeof part.text==='string').map(part=>part.text).join('\n'):message?.refusal;
+        if(typeof text!=='string'||!text.trim())throw new Error('The endpoint returned no assistant text. Check that it supports Chat Completions JSON responses.');
+        return text.trim().slice(0,32000);
+      },
+      async send(message) {
+        const text=message.trim().slice(0,4000);
+        if(!text||this.pending)return;
+        this.append('user',text);
+        $('#copilot-input').value='';
+        $$('.copilot-welcome,.suggestion',$('#copilot-messages')).forEach(element=>element.hidden=true);
+        if(this.config.mode==='demo'){this.append('assistant',this.demoReply(text));return;}
+        const config={...this.config};
+        const request={controller:new AbortController(),reason:''};
+        this.pending=request;
+        this.setBusy(true);
+        const bubble=this.append('assistant','Thinking…');bubble.classList.add('pending');
+        const timeout=setTimeout(()=>{request.reason='timeout';request.controller.abort();},45000);
+        try{
+          const headers={'Content-Type':'application/json','Accept':'application/json'};
+          if(config.auth==='bearer')headers.Authorization=`Bearer ${config.apiKey}`;
+          if(config.auth==='api-key')headers['api-key']=config.apiKey;
+          const body={messages:[{role:'system',content:'You are Copilot in an unofficial Windows desktop concept. Help with general questions and this interface: Start, demo Files, Notepad, Settings, Calendar, Widgets, and Focus. You cannot access real files, accounts, or operating-system settings, or execute commands.'},...this.history,{role:'user',content:text}],stream:false};
+          if(config.model)body.model=config.model;
+          const response=await fetch(config.endpoint,{method:'POST',headers,body:JSON.stringify(body),signal:request.controller.signal,credentials:'omit',redirect:'error'});
+          if(!response.ok){
+            const help=response.status===401||response.status===403?'Check your API key and endpoint permissions.':response.status===429?'The API rate limit was reached. Try again later.':'Check the endpoint, model, and provider availability.';
+            throw new Error(`API returned HTTP ${response.status}. ${help}`);
+          }
+          const reply=this.readReply(await response.json());
+          bubble.textContent=reply;
+          this.history=[...this.history,{role:'user',content:text},{role:'assistant',content:reply}].slice(-20);
+          $('#copilot-mode-label').textContent='API connected';
+          $('#copilot-connection-status').textContent='The last API request succeeded.';
+        }catch(error){
+          bubble.classList.add('error');
+          bubble.textContent=request.reason==='timeout'?'The request timed out after 45 seconds. Try again or check your endpoint.':request.reason==='stopped'?'Response stopped.':error instanceof TypeError?'Could not reach the API. Check the network, HTTPS endpoint, and its CORS settings.':error instanceof SyntaxError?'The API returned invalid JSON. Use a non-streaming Chat Completions endpoint.':error.message;
+          $('#copilot-mode-label').textContent='API configured';
+          $('#copilot-connection-status').textContent='The last request did not complete. Check the conversation for details.';
+        }finally{
+          clearTimeout(timeout);this.pending=null;
+          bubble.classList.remove('pending');this.setBusy(false);
+          const messages=$('#copilot-messages');messages.scrollTop=messages.scrollHeight;
+          if(Panels.isOpen('copilot-panel')&&Session.phase==='desktop'&&(document.activeElement===document.body||document.activeElement.id==='copilot-stop'))$('#copilot-input').focus({preventScroll:true});
+        }
       }
     };
 
@@ -1150,7 +1318,7 @@
       particle.style.cssText=`left:${12+Math.random()*80}%;top:${20+Math.random()*80}%;--duration:${12+Math.random()*15}s;--delay:${-Math.random()*27}s`;
       $('#particles').append(particle);
     }
-    renderTaskbar();Battery.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
+    renderTaskbar();Battery.init();Copilot.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
     setInterval(updateClock,1000);
     Session.startBoot();
   })();

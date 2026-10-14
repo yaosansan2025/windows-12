@@ -2,7 +2,7 @@
 
 A responsive desktop concept with a dark wallpaper, floating taskbar, desktop apps, draggable windows, widgets, calendar, and a Copilot sidebar.
 
-**One HTML file. No dependencies, CDN, build step, or backend.** This is an unofficial design concept, not a Microsoft product or a real operating system.
+**One HTML file. The offline desktop needs no dependencies, CDN, build step, or backend.** An optional Copilot API connection needs internet access and a compatible endpoint. This is an unofficial design concept, not a Microsoft product or a real operating system.
 
 ## Run locally
 
@@ -28,13 +28,87 @@ The included [deployment workflow](.github/workflows/deploy.yml) publishes only 
 
 You can also upload `index.html` to any static website host. Serve it as the site's index document; no server runtime, environment variables, or package installation is required.
 
+## Connect Copilot to an LLM API
+
+Copilot starts in **Offline demo** mode. The API key is shipped **blank**, with `your-api-key` as the input placeholder. No AI service is contacted until you apply an API connection and send a message.
+
+The sidebar supports **OpenAI-compatible Chat Completions JSON endpoints**. The Copilot name is part of this concept's interface: a Microsoft Copilot or GitHub Copilot subscription is not a general-purpose Chat Completions API key. You can use Azure OpenAI, GitHub Models, another compatible provider, or your own server gateway. Copilot Studio/Direct Line and Microsoft 365 Copilot APIs use different authentication and conversation protocols; they need a server adapter to the contract below and cannot be pasted in as a Chat Completions endpoint.
+
+### Configure the sidebar
+
+1. Sign in to the desktop, open **Copilot**, and expand **Connection settings**.
+2. Choose **API connection**.
+3. Enter the **complete chat completions URL**, including any provider-required query parameters. A same-origin path such as `/api/copilot` also works when served by your own backend.
+4. Enter the provider's model or deployment name. Leave it blank only if your gateway selects the model or the provider encodes the deployment in its URL.
+5. Choose authentication:
+   - **No key · server proxy**: leave the key blank; your backend supplies the upstream credential.
+   - **Bearer token**: enter your provider token in the password field. Requests use `Authorization: Bearer …`.
+   - **api-key header · Azure OpenAI**: enter your Azure resource key. Requests use `api-key: …`.
+6. Select **Apply connection**, then send a message. The header changes from **API configured** to **API connected** only after a successful reply.
+
+Example endpoint formats (use a model your account can access):
+
+| Service | Full endpoint | Model | Authentication |
+| --- | --- | --- | --- |
+| Your server proxy | `/api/copilot` or `https://your-server.example/api/copilot` | Optional if chosen on the server | No key |
+| Azure OpenAI v1 | `https://YOUR-RESOURCE.openai.azure.com/openai/v1/chat/completions` | Your deployment name | api-key header |
+| GitHub Models | `https://models.github.ai/inference/chat/completions` | A catalog model ID, e.g. `openai/gpt-4.1` | Bearer token with Models read access |
+
+Check your provider's current endpoint, permissions, model availability, and billing requirements: [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/reference) · [GitHub Models](https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models). These services have separate access requirements from consumer Copilot products.
+
+Settings, keys, and API conversation history stay in memory in the current tab; they are not saved to browser storage. Refreshing resets the connection. **New chat** clears the conversation, **Stop response** cancels a pending browser request, and applying a different connection starts a fresh conversation. Switching back to Offline demo clears the active key. Canceling a browser request does not guarantee the provider stops processing it.
+
+### Hosting, keys, and CORS
+
+For a public website, use an authenticated server proxy or serverless function that keeps the upstream key in a server environment variable and controls caller access. Leave this page's key field blank and choose **No key**. GitHub Pages serves static files only, so host that proxy separately or use a host with server functions. Never commit a real key to `index.html`; keys embedded in frontend code are visible to visitors. Entering a key in this tab is intended for personal testing with a provider that allows browser calls.
+
+Direct API calls work only when the endpoint permits the page's origin through **CORS**, including preflight `OPTIONS`, `POST`, and the headers you use (`Content-Type`, `Authorization`, or `api-key`). Use HTTPS; HTTP is accepted only for localhost development. Opening `index.html` directly can send an origin of `null`, which many APIs reject. To preview the static page with a normal local origin, run this in the repository and open `http://localhost:8000`:
+
+```sh
+python3 -m http.server 8000
+```
+
+That preview command serves the page only; it does not create an API proxy. A relative `/api/copilot` URL requires a backend serving that route.
+
+### API/proxy contract and troubleshooting
+
+The client sends a JSON `POST` with a system message, up to 20 messages from successful API turns, the new user message, an optional `model`, and `stream: false`. For example:
+
+```json
+{
+  "model": "your-model-name",
+  "messages": [
+    { "role": "system", "content": "You are a helpful assistant." },
+    { "role": "user", "content": "Hello" }
+  ],
+  "stream": false
+}
+```
+
+Return a normal JSON response using this shape:
+
+```json
+{
+  "choices": [
+    { "message": { "role": "assistant", "content": "Hello! How can I help?" } }
+  ]
+}
+```
+
+Text content arrays are also supported. Replies render as plain text; HTML is never executed. SSE/streaming responses and tool calls are not supported. Redirects are rejected, browser cookies are not sent, requests time out after 45 seconds, and API failures display an error rather than an offline demo answer.
+
+- **401/403**: check the credential, authentication header type, and access to the endpoint/model.
+- **429**: check the provider's quota or rate limits and retry later.
+- **Could not reach the API**: check the URL, internet connection, HTTPS, and the endpoint's CORS settings.
+- **Invalid JSON / no assistant text**: verify the endpoint returns the non-streaming response format above.
+
 ## Demo behavior
 
 - Boot and sign-in are client-side demonstrations, not real firmware or authentication. The demo password is included in the HTML source; it does not protect files or accounts. Signing in makes no network request and requires no backend.
 - The clock and calendar use the browser's local date and time.
 - Battery percentage and charging status use the browser's Battery Status API and update as the device reports changes. The indicator is hidden when the API is unsupported, blocked, or provides no usable reading. It also hides the ambiguous full/plugged-in fallback commonly reported by battery-free desktops until a real battery change is observed; a fully charged laptop can initially be hidden for the same reason. Once a battery is detected, it stays visible when fully charged during that page session. Browser and device support varies; Safari does not expose this API.
 - Preferences and editable demo content use browser storage where available; storage behavior can vary when opening a local file.
-- Copilot replies are local scripted demo responses, not a connected AI service.
+- Copilot uses local scripted replies by default. In API mode it sends chat messages and the required credential to your configured endpoint; no key or live service connection is included in this repository.
 - Weather, news, cloud sync, device continuity, biometric login, and system controls are illustrative UI. They do not access accounts or change operating-system settings.
 - External links in the browser demo require an internet connection.
 
