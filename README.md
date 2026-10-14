@@ -1,6 +1,6 @@
 # Windows 12 concept
 
-A responsive desktop concept with an animated blue-purple wallpaper, translucent Fluent-style panels, floating taskbar, desktop apps, draggable windows, widgets, calendar, and a Copilot-style sidebar.
+A responsive desktop concept with a dark wallpaper, floating taskbar, desktop apps, draggable windows, widgets, calendar, and a Copilot sidebar.
 
 **One HTML file. No dependencies, CDN, build step, or backend.** This is an unofficial design concept, not a Microsoft product or a real operating system.
 
@@ -15,7 +15,7 @@ The page begins with a simulated BIOS boot sequence, then opens the Windows-styl
 
 Enter the password to open the desktop. An incorrect password keeps the sign-in screen open. Locking or signing out requires the password again; restarting replays the boot sequence. Saved notes and preferences remain in browser storage where available.
 
-Single-click a desktop icon to select it, double-click to open it, drag a window by its title bar, and use its minimize, maximize, and close controls. Explore Start, Search, Widgets, Copilot, and Settings from the taskbar. Click the clock for the calendar or right-click the desktop for its context menu. Press **Esc** to dismiss open panels.
+Single-click a desktop icon to select it, double-click to open it, drag a window by its title bar, and use its minimize, maximize, and close controls. Explore Start, Search, Widgets, Copilot, Quick Settings, and Settings from the taskbar. Click the clock for the calendar or right-click the desktop for its context menu. Press **Esc** to dismiss open panels.
 
 ## Deploy to GitHub Pages
 
