@@ -28,6 +28,14 @@ The included [deployment workflow](.github/workflows/deploy.yml) publishes only 
 
 You can also upload `index.html` to any static website host. Serve it as the site's index document; no server runtime, environment variables, or package installation is required.
 
+## Cloudflare deployment
+
+The same `index.html` is deployed at [`https://sbti.christmas/windows12`](https://sbti.christmas/windows12) through the existing Cloudflare Worker named `windows-12`. The Cloudflare routes are `sbti.christmas/windows12` and `sbti.christmas/windows12/*`; the rest of `sbti.christmas` remains on the `sbti` Pages project.
+
+The Worker retains its original static assets and serves this repository's HTML at `/windows12`, `/windows12/`, and `/windows12/index.html`. No separate client or backend is deployed. The optional Copilot API connection still requires a separately configured compatible endpoint, as described below.
+
+**GitHub pushes do not automatically redeploy this Cloudflare Worker.** To publish an updated `index.html`, upload a new Worker version from the current file while retaining the existing assets, test its Version URL, then deploy it to 100% traffic. Verify the live `/windows12` URL and keep the route patterns in place.
+
 ## Connect Copilot to an LLM API
 
 Copilot starts in **Offline demo** mode. The API key is shipped **blank**, with `your-api-key` as the input placeholder. No AI service is contacted until you apply an API connection and send a message.
