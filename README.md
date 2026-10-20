@@ -13,9 +13,23 @@ The page begins with a simulated BIOS boot sequence, then opens the Windows-styl
 - **Username:** `User`
 - **Password:** `1234`
 
-Enter the password to open the desktop. An incorrect password keeps the sign-in screen open. Locking or signing out requires the password again; restarting replays the boot sequence. Saved notes and preferences remain in browser storage where available.
+Enter the password to open the desktop. An incorrect password keeps the sign-in screen open. Locking or signing out requires the password again; restarting replays the boot sequence. Files, open-window layout, and preferences remain in browser storage where available.
 
 Single-click a desktop icon to select it, double-click to open it, drag a window by its title bar, and use its minimize, maximize, and close controls. Explore Start, Search, Widgets, Copilot, Quick Settings, and Settings from the taskbar. Click the clock for the calendar or right-click the desktop for its context menu. Press **Esc** to dismiss open panels.
+
+File Explorer supports browser-local text files (`.txt`, `.md`, `.json`, `.csv`, `.log`). Use **Import text** to select files, **New folder** to organize them, **Download** to save a copy to your device, and Recycle Bin to restore deleted files. Notepad edits the selected file automatically. Imports are limited to 256 KB per file, 60 active files, and 1.5 million characters total. Browser storage has its own quota, so use **Download** for an independent copy of anything important. Local files never sync between devices or between different site URLs.
+
+The desktop restores open windows, their sizes and positions, minimized/maximized state, and active window after sign-in or page reload. Keyboard shortcuts (when the browser lets the page receive them):
+
+| Action | Shortcut |
+| --- | --- |
+| Open Start | `Ctrl+Space` |
+| Switch windows | `Alt+Tab`, or `Ctrl+Shift+Space` |
+| Close active window | `Alt+F4`, or `Ctrl+Alt+W` |
+| Snap active window left/right | `Ctrl+Shift+Left/Right` |
+| Maximize or restore/minimize | `Ctrl+Shift+Up/Down` |
+
+Browsers and operating systems may reserve `Alt+Tab` and `Alt+F4`; the alternative shortcuts are provided for that reason.
 
 ## Deploy to GitHub Pages
 
@@ -35,6 +49,8 @@ The same `index.html` is deployed at [`https://sbti.christmas/windows12`](https:
 The repository includes [`windows12/index.html`](windows12/index.html) as an exact copy of the original [`index.html`](index.html). Cloudflare's connected build deploys the repository as static assets, so both `/windows12` (redirecting to `/windows12/`) and `/windows12/` serve the original app. No separate client or backend is deployed. The optional Copilot API connection still requires a separately configured compatible endpoint, as described below.
 
 Pushes to `main` trigger an automatic Cloudflare Worker deployment. When changing the app, update `index.html` and copy the same contents to `windows12/index.html` in the same commit. After the build completes, verify [`https://sbti.christmas/windows12/`](https://sbti.christmas/windows12/) and keep the Worker route patterns in place.
+
+The Cloudflare site and the GitHub Pages site have separate browser storage because they use different origins. Files and preferences created at one URL do not automatically appear at the other.
 
 ## Connect Copilot to an LLM API
 
@@ -115,7 +131,7 @@ Text content arrays are also supported. Replies render as plain text; HTML is ne
 - Boot and sign-in are client-side demonstrations, not real firmware or authentication. The demo password is included in the HTML source; it does not protect files or accounts. Signing in makes no network request and requires no backend.
 - The clock and calendar use the browser's local date and time.
 - Battery percentage and charging status use the browser's Battery Status API and update as the device reports changes. The indicator is hidden when the API is unsupported, blocked, or provides no usable reading. It also hides the ambiguous full/plugged-in fallback commonly reported by battery-free desktops until a real battery change is observed; a fully charged laptop can initially be hidden for the same reason. Once a battery is detected, it stays visible when fully charged during that page session. Browser and device support varies; Safari does not expose this API.
-- Preferences and editable demo content use browser storage where available; storage behavior can vary when opening a local file.
+- Preferences, text files, and window layout use browser storage where available; storage behavior can vary when opening a local file.
 - Copilot uses local scripted replies by default. In API mode it sends chat messages and the required credential to your configured endpoint; no key or live service connection is included in this repository.
 - Weather, news, cloud sync, device continuity, biometric login, and system controls are illustrative UI. They do not access accounts or change operating-system settings.
 - External links in the browser demo require an internet connection.

@@ -1,13 +1,10 @@
-# Windows 12 concept — V1.0.0
+# Windows 12 concept — V1.1.0
 
-The first release of the Windows 12 desktop concept. Download `index.html` and open it in a modern browser, or deploy that file to any static website host. It contains all HTML, CSS, JavaScript, icons, and wallpaper artwork; no build step, dependency, CDN, or backend is needed.
+This release makes the browser desktop useful across sessions. Download `index.html` and double-click it, or open the hosted site. The page still contains all HTML, CSS, JavaScript, icons, and wallpaper artwork in one file, with no runtime dependencies, CDN, build step, or backend.
 
-Highlights:
+- Open windows now restore after reload or sign-in, including position, size, minimized/maximized state, and focus.
+- File Explorer supports local text-file import, folders, move, download, Recycle Bin, and restore. Notepad edits the selected file with automatic browser-local saving.
+- Window switching, closing, and snap layouts have keyboard shortcuts, with alternatives for browser-reserved keys.
+- The existing Cloudflare Worker deployment at `sbti.christmas/windows12/` receives the same update as GitHub Pages.
 
-- Simulated BIOS startup, lock screen, and sign-in (`User` / `1234`).
-- Animated wallpaper, floating taskbar, Start menu, desktop icons, and draggable, resizable windows.
-- Search, widgets, calendar, notifications, quick settings, personalization, and a Copilot chat demo.
-- Responsive layout, keyboard shortcuts, reduced-motion support, and browser-stored preferences.
-- GitHub Pages deployment workflow.
-
-This is an unofficial UI concept. The login, Copilot responses, cloud sync, device continuity, weather, and system controls are demonstrations; they do not provide real security or connect to those services.
+The BIOS/login screens and cloud, AI demo, and system integrations remain an unofficial UI concept. Login is simulated. The optional Copilot API connection remains client-side; this release does not add a backend proxy.

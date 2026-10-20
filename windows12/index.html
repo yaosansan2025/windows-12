@@ -212,6 +212,24 @@
     .bubble.pending { color: var(--muted); }
     .bubble.error { border-color: #e3a08c66; }
     .copilot-form, .copilot-disclaimer { flex-shrink: 0; }
+    /* Native resize handles keep restored window dimensions useful on desktop. */
+    .window:not(.maximized) { resize: both; }
+    .window.maximized { resize: none; }
+    @media(max-width:560px) { .window { resize: none !important; } }
+    .files-toolbar { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px; }
+    .files-toolbar .secondary,.folder-form .secondary { font-size:10px;padding:8px 10px; }
+    .folder-form { display:flex;gap:8px;margin:0 0 16px; }
+    .folder-form[hidden] { display:none; }
+    .folder-form input { flex:1;min-width:0;padding:8px 10px;font-size:11px; }
+    .file-list-heading { margin:24px 0 8px;font-size:12px; }
+    .virtual-file { display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--border);font-size:11px; }
+    .virtual-file .file-name { display:flex;align-items:center;gap:9px;flex:1;min-width:135px;text-align:left;overflow-wrap:anywhere; }
+    .virtual-file .file-name .icon { width:17px;height:17px;color:var(--accent); }
+    .virtual-file .file-name small { display:block;font-size:9px;color:var(--muted);margin-top:3px; }
+    .virtual-file select { max-width:110px;padding:6px;font-size:10px; }
+    .virtual-file .text-button { padding:5px;font-size:10px; }
+    .notes-toolbar { gap:10px;flex-wrap:wrap; }
+    #notepad-name { flex:1;min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
   </style>
 </head>
 <body class="session-locked">
@@ -483,7 +501,7 @@
 
     // 04. Window manager: focus, drag, minimize/restore, maximize and snap.
     const Windows = {
-      items: new Map(), z: 10, active: null,
+      items: new Map(), z: 10, active: null, restoring: false,
       open(id) {
         if (Session.phase !== 'desktop') return;
         Panels.closeTransient();
@@ -505,7 +523,8 @@
         element.style.cssText = `width:${width}px;height:${height}px;left:${left}px;top:${top}px`;
         element.innerHTML = `<header class="window-titlebar"><span class="window-title">${appIcon(app.icon || id, app.emoji)}${escapeHTML(app.title)}</span><div class="window-actions"><button data-window-action="minimize" aria-label="Minimize ${app.title}">${icon('minimize')}</button><button data-window-action="maximize" aria-label="Maximize ${app.title}" title="Maximize · Right-click for snap layouts">${icon('maximize')}</button><button data-window-action="close" aria-label="Close ${app.title}">${icon('close')}</button></div></header><div class="snap-picker" aria-label="Snap layouts"><button data-snap="left" aria-label="Snap left"></button><button data-snap="full" aria-label="Maximize"></button><button data-snap="right" aria-label="Snap right"></button></div><div class="window-content ${app.flush ? 'flush' : ''}">${app.render()}</div>${app.status ? `<footer class="window-status">${app.status}</footer>` : ''}`;
         layer.append(element);
-        this.items.set(id, {element, savedRect:null});
+        const item = {element, savedRect:null, resizeObserver:null};
+        this.items.set(id, item);
         element.addEventListener('pointerdown', () => this.focus(id));
         element.addEventListener('focusin', () => this.focus(id));
         element.addEventListener('click', event => {
@@ -521,6 +540,10 @@
         element.addEventListener('pointerleave', () => { clearTimeout(snapTimer); $('.snap-picker', element).classList.remove('open'); });
         maximize.addEventListener('contextmenu', event => { event.preventDefault(); $('.snap-picker', element).classList.toggle('open'); });
         this.enableDrag(id);
+        if (window.ResizeObserver) {
+          item.resizeObserver = new ResizeObserver(() => this.saveWorkspace());
+          item.resizeObserver.observe(element);
+        }
         app.mount?.(element);
         this.syncTaskbar();
         this.focus(id);
@@ -534,6 +557,7 @@
           item.element.style.zIndex = ++this.z;
           this.items.forEach((value, key) => value.element.classList.toggle('focused', key === id));
           this.updateTaskbarState();
+          this.saveWorkspace();
         }
       },
       minimize(id) {
@@ -541,9 +565,10 @@
         item.element.classList.add('minimized');
         item.element.inert = true;
         item.element.classList.remove('focused');
-        this.active = null;
+        if (this.active === id) this.active = null;
         this.focusTop();
         this.updateTaskbarState();
+        this.saveWorkspace();
         $(`[data-task-app="${id}"]`)?.focus({preventScroll:true});
       },
       restore(id) {
@@ -552,17 +577,22 @@
         item.element.classList.remove('minimized');
         this.focus(id);
         item.element.focus({preventScroll:true});
+        this.saveWorkspace();
       },
       close(id) {
         const item = this.items.get(id);
         if (!item) return;
         item.element.classList.add('closing');
+        // A new copy of this app can open before the close animation finishes.
+        item.element.removeAttribute('id');
         item.element.inert = true;
         Apps[id].unmount?.();
+        item.resizeObserver?.disconnect();
         this.items.delete(id);
         setTimeout(() => item.element.remove(), 220);
         if (this.active === id) { this.active = null; this.focusTop(); }
         this.syncTaskbar();
+        this.saveWorkspace();
       },
       focusTop() {
         const visible = [...this.items].filter(([, value]) => !value.element.classList.contains('minimized'));
@@ -581,6 +611,7 @@
           item.element.classList.add('maximized');
           this.setMaxLabel(item, true);
         }
+        this.saveWorkspace();
       },
       restoreRect(item) {
         item.element.classList.remove('maximized');
@@ -588,6 +619,7 @@
         item.savedRect = null;
         this.setMaxLabel(item, false);
         this.clampWindow(item.element);
+        this.saveWorkspace();
       },
       setMaxLabel(item, maximized) {
         const button = $('[data-window-action="maximize"]', item.element);
@@ -603,6 +635,7 @@
         const layer = $('#window-layer');
         const width = (layer.clientWidth - 24) / 2;
         Object.assign(item.element.style, {left:`${side === 'left' ? 8 : width + 16}px`,top:'8px',width:`${width}px`,height:`${layer.clientHeight - 8}px`});
+        this.saveWorkspace();
       },
       enableDrag(id) {
         const item = this.items.get(id), element = item.element, bar = $('.window-titlebar', element);
@@ -631,7 +664,7 @@
             element.style.left = `${clamp(e.clientX - offsetX, 0, layer.clientWidth - element.offsetWidth)}px`;
             element.style.top = `${clamp(e.clientY - offsetY, 0, layer.clientHeight - element.offsetHeight)}px`;
           };
-          const end = () => { bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', end); bar.removeEventListener('pointercancel', end); if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId); };
+          const end = () => { bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', end); bar.removeEventListener('pointercancel', end); if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId); if (dragging) this.saveWorkspace(); };
           bar.addEventListener('pointermove', move);
           bar.addEventListener('pointerup', end);
           bar.addEventListener('pointercancel', end);
@@ -661,6 +694,59 @@
         if (!this.items.has(id)) this.open(id);
         else if (this.active === id && !this.items.get(id).element.classList.contains('minimized')) this.minimize(id);
         else this.restore(id);
+      },
+      cycle(reverse = false) {
+        const ids = [...this.items.keys()];
+        if (!ids.length) return;
+        const index = ids.indexOf(this.active);
+        const next = ids[(index + (reverse ? -1 : 1) + ids.length) % ids.length];
+        this.restore(next);
+      },
+      saveWorkspace() {
+        if (this.restoring) return;
+        const windows = [...this.items].map(([id,item]) => {
+          const element = item.element;
+          const maximized = element.classList.contains('maximized');
+          const saved = maximized && item.savedRect;
+          const bounds = saved ? Object.fromEntries(['left','top','width','height'].map(key => [key,parseFloat(saved[key])])) :
+            {left:element.offsetLeft,top:element.offsetTop,width:element.offsetWidth,height:element.offsetHeight};
+          return {id,...bounds,maximized,minimized:element.classList.contains('minimized'),z:Number(element.style.zIndex)||0};
+        });
+        Storage.write('workspace',{windows,active:this.active});
+      },
+      restoreWorkspace() {
+        if (this.items.size) return;
+        const saved = Storage.read('workspace',null);
+        if (!saved || !Array.isArray(saved.windows)) return;
+        const layer = $('#window-layer');
+        this.restoring = true;
+        try {
+          const entries = saved.windows.slice(0,20).filter(entry => entry && typeof entry.id === 'string' && Apps[entry.id])
+            .sort((a,b) => (Number(a.z)||0)-(Number(b.z)||0));
+          for (const entry of entries) {
+            this.open(entry.id);
+            const item = this.items.get(entry.id);
+            if (!item) continue;
+            const element = item.element;
+            const number = (value,fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+            const width = clamp(number(entry.width,element.offsetWidth),280,Math.max(280,layer.clientWidth-16));
+            const height = clamp(number(entry.height,element.offsetHeight),180,Math.max(180,layer.clientHeight-16));
+            const left = clamp(number(entry.left,element.offsetLeft),8,Math.max(8,layer.clientWidth-width-8));
+            const top = clamp(number(entry.top,element.offsetTop),8,Math.max(8,layer.clientHeight-height-8));
+            Object.assign(element.style,{left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`});
+            if (entry.maximized) {
+              item.savedRect = {left:`${left}px`,top:`${top}px`,width:`${width}px`,height:`${height}px`};
+              element.classList.add('maximized');
+              this.setMaxLabel(item,true);
+            }
+            if (entry.minimized) {element.classList.add('minimized');element.inert=true;element.classList.remove('focused');}
+          }
+          this.active = null;
+          const active = this.items.get(saved.active);
+          if (active && !active.element.classList.contains('minimized')) this.focus(saved.active);
+          else this.focusTop();
+          this.syncTaskbar();
+        } finally {this.restoring=false;this.saveWorkspace();}
       }
     };
 
@@ -696,24 +782,181 @@
       }
     };
 
-    // 06. Small, useful applications. No external resources are loaded.
+    // 06. Text files and folders live in browser storage; imports never touch
+    // the real filesystem again unless the user explicitly selects a file.
     const Files = {
-      render() {
-        return `<div class="files-layout"><nav class="files-sidebar" aria-label="File locations"><button class="active" data-folder="Home">${icon('home')}Home</button><button data-folder="Documents">${icon('notepad')}Documents</button><button data-folder="Pictures">${icon('palette')}Pictures</button><button data-folder="Music">${icon('volume')}Music</button><button data-folder="This PC">${icon('pc')}This PC</button><div class="divider"></div><button data-folder="Cloud">${icon('cloud')}Cloud</button></nav><div class="files-main"></div></div>`;
-      },
-      show(element, folder) {
-        $$('[data-folder]', element).forEach(button => button.classList.toggle('active', button.dataset.folder === folder));
-        const main = $('.files-main', element);
-        const header = `<div class="breadcrumb">This PC &nbsp; › &nbsp; ${escapeHTML(folder)}</div>`;
-        if (folder === 'Home') main.innerHTML = `${header}<h2 style="font-size:22px;margin-bottom:20px">Home</h2><div class="folder-grid">${['Documents','Pictures','Music'].map((name,i) => `<button class="folder" data-folder="${name}">${appIcon('files')}<strong>${name}</strong><small>${['Ideas & everyday notes','A different perspective','Audio preview'][i]}</small></button>`).join('')}</div><div class="row between" style="margin:25px 0 10px"><h3 style="font-size:12px">Recently opened</h3><span class="muted" style="font-size:10px">Just for you</span></div><button class="file-row" data-app="notepad">${icon('notepad')}Notes.txt<small>Notes · Today</small></button><button class="file-row" data-app="photos">${icon('palette')}Wallpapers<small>3 wallpapers</small></button>`;
-        else if (folder === 'This PC' || folder === 'Cloud') main.innerHTML = `${header}<div class="app-heading"><h2>${folder === 'Cloud' ? 'Cloud storage' : 'This PC'}</h2><p>${folder === 'Cloud' ? 'Cloud storage is unavailable in this offline demo.' : 'The displayed storage is sample data.'}</p></div><div class="store-card"><div class="row">${icon(folder === 'Cloud' ? 'cloud' : 'pc')}<strong>${folder === 'Cloud' ? 'OneDrive · Demo' : 'Local disk · Demo'}</strong></div><div class="storage-bar"></div><small>179 GB of 512 GB · Illustrative storage</small></div>`;
-        else {
-          const targets = {Documents:['notepad','Notes.txt','Your saved notes.'],Pictures:['photos','Wallpapers','Available wallpapers.'],Music:['music','Ambient audio','Generated locally.']};
-          const [app, name, description] = targets[folder];
-          main.innerHTML = `${header}<div class="app-heading"><h2>${folder}</h2><p>${description}</p></div><button class="file-row" data-app="${app}">${icon(app === 'photos' ? 'palette' : app === 'music' ? 'volume' : 'notepad')}${name}${icon('right')}</button>`;
+      folders:['Documents','Pictures','Music'], items:[], trash:[], activeId:null, currentFolder:'Home',
+      reserved:['Home','This PC','Cloud','Recycle Bin'],
+      init() {
+        const savedFolders=Storage.read('folders',[]);
+        if(Array.isArray(savedFolders))for(const name of savedFolders){
+          if(typeof name==='string'&&name.length<=40&&name.trim()===name&&!this.reserved.some(folder=>folder.toLowerCase()===name.toLowerCase())&&!this.folders.some(folder=>folder.toLowerCase()===name.toLowerCase())&&this.folders.length<25)this.folders.push(name);
         }
+        const savedFiles=Storage.read('files',null);
+        const validate=list=>Array.isArray(list)?list.slice(0,60).filter(file=>file&&typeof file.id==='string'&&typeof file.name==='string'&&typeof file.content==='string'&&file.name.length<=120&&file.content.length<=260000).map(file=>({
+          id:file.id,name:file.name,folder:this.folders.includes(file.folder)?file.folder:'Documents',content:file.content,updated:Number(file.updated)||Date.now()
+        })):[];
+        this.items=savedFiles===null?[{id:'notes',name:'Notes.txt',folder:'Documents',content:note,updated:Date.now()}]:validate(savedFiles);
+        this.trash=validate(Storage.read('trash',[]));
+        const last=Storage.read('activeFile',null);
+        this.activeId=this.items.some(file=>file.id===last)?last:this.items[0]?.id||null;
+        if(savedFiles===null)this.persist();
       },
-      mount(element) { this.show(element, 'Home'); element.addEventListener('click', event => { const folder = event.target.closest('[data-folder]')?.dataset.folder; if (folder) this.show(element, folder); }); }
+      persist() {
+        const filesSaved=Storage.write('files',this.items);
+        const foldersSaved=Storage.write('folders',this.folders.slice(3));
+        const trashSaved=Storage.write('trash',this.trash);
+        return filesSaved&&foldersSaved&&trashSaved;
+      },
+      id() {return `file-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;},
+      uniqueName(name,folder) {
+        const dot=name.lastIndexOf('.'),base=dot>0?name.slice(0,dot):name,extension=dot>0?name.slice(dot):'';
+        let candidate=name,index=2;
+        while(this.items.some(file=>file.folder===folder&&file.name.toLowerCase()===candidate.toLowerCase()))candidate=`${base} (${index++})${extension}`;
+        return candidate;
+      },
+      current() {
+        let file=this.items.find(item=>item.id===this.activeId);
+        if(!file){file=this.newFile(false);}
+        return file;
+      },
+      newFile(open=true) {
+        const folder=this.folders.includes(this.currentFolder)?this.currentFolder:'Documents';
+        const file={id:this.id(),name:this.uniqueName('Untitled.txt',folder),folder,content:'',updated:Date.now()};
+        this.items.push(file);this.activeId=file.id;Storage.write('activeFile',file.id);this.persist();this.refreshViews();
+        if(open)this.openFile(file.id);
+        return file;
+      },
+      openFile(id) {
+        if(!this.items.some(file=>file.id===id))return;
+        this.activeId=id;Storage.write('activeFile',id);
+        Windows.open('notepad');this.syncEditor();
+      },
+      syncEditor() {
+        const element=Windows.items.get('notepad')?.element;
+        if(!element)return;
+        const file=this.current();
+        $('#notepad-name',element).textContent=file.name;
+        $('.note-editor',element).value=file.content;
+        $('.window-status',element).textContent=`${file.folder} · Saved in this browser · ${file.content.length} characters`;
+      },
+      download(file) {
+        if(!file)return;
+        const url=URL.createObjectURL(new Blob([file.content],{type:'text/plain;charset=utf-8'}));
+        const link=document.createElement('a');link.href=url;link.download=file.name.replace(/[\\/]/g,'_');document.body.append(link);link.click();link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      },
+      async import(selected) {
+        const files=[...selected];let imported=0;
+        for(const source of files){
+          if(this.items.length>=60){Notifications.show('Import limit reached','The virtual workspace supports up to 60 files.');break;}
+          if(!/\.(txt|md|json|csv|log)$/i.test(source.name)||source.size>256000){Notifications.show('File not imported',`${source.name.slice(0,60)} must be a text file smaller than 256 KB.`);continue;}
+          try{
+            const content=await source.text();
+            if(content.includes('\0')||content.length>260000||this.items.reduce((total,file)=>total+file.content.length,0)+content.length>1500000){Notifications.show('File not imported','Only text files up to 1.5 million total characters fit in this workspace.');continue;}
+            const folder=this.folders.includes(this.currentFolder)?this.currentFolder:'Documents';
+            const file={id:this.id(),name:this.uniqueName(source.name.slice(0,120),folder),folder,content,updated:Date.now()};
+            this.items.push(file);this.activeId=file.id;Storage.write('activeFile',file.id);imported++;
+          }catch{Notifications.show('File not imported',`Could not read ${source.name.slice(0,60)}.`);}
+        }
+        if(imported){const saved=this.persist();this.refreshViews();Notifications.show(`${imported} file${imported===1?'':'s'} imported`,saved?'Available in File Explorer.':'Available for this session only; browser storage is full.');}
+        return imported;
+      },
+      createFolder(name) {
+        const clean=name.trim().replace(/[\x00-\x1f/\\]/g,'').slice(0,40);
+        if(!clean||this.reserved.some(folder=>folder.toLowerCase()===clean.toLowerCase())||this.folders.some(folder=>folder.toLowerCase()===clean.toLowerCase()))return false;
+        if(this.folders.length>=25)return false;
+        this.folders.push(clean);this.persist();this.show($('#window-files'),clean);return true;
+      },
+      move(id,folder) {
+        const file=this.items.find(item=>item.id===id);
+        if(!file||!this.folders.includes(folder)||file.folder===folder)return;
+        file.name=this.uniqueName(file.name,folder);file.folder=folder;file.updated=Date.now();this.persist();this.refreshViews();
+        if(this.activeId===id)this.syncEditor();
+      },
+      remove(id) {
+        const index=this.items.findIndex(file=>file.id===id);
+        if(index<0)return;
+        if(this.activeId===id&&Windows.items.has('notepad'))Windows.close('notepad');
+        this.trash.unshift(this.items.splice(index,1)[0]);this.trash=this.trash.slice(0,60);
+        if(this.activeId===id){this.activeId=this.items[0]?.id||null;Storage.write('activeFile',this.activeId);}
+        this.persist();this.refreshViews();
+      },
+      restore(id) {
+        const index=this.trash.findIndex(file=>file.id===id);if(index<0)return;
+        if(this.items.length>=60){Notifications.show('Restore limit reached','Delete a file before restoring another.');return;}
+        const file=this.trash.splice(index,1)[0];
+        if(!this.folders.includes(file.folder))file.folder='Documents';
+        file.name=this.uniqueName(file.name,file.folder);this.items.push(file);this.persist();this.refreshViews();
+      },
+      fileRow(file,trash=false) {
+        const name=escapeHTML(file.name),id=escapeHTML(file.id);
+        if(trash)return `<div class="virtual-file"><span class="file-name">${icon('notepad')}<span>${name}<small>${escapeHTML(file.folder)}</small></span></span><button class="text-button" data-restore-file="${id}">Restore</button><button class="text-button" data-permanent-file="${id}" aria-label="Delete ${name} permanently">Delete</button></div>`;
+        const folders=this.folders.map(folder=>`<option value="${escapeHTML(folder)}" ${folder===file.folder?'selected':''}>${escapeHTML(folder)}</option>`).join('');
+        return `<div class="virtual-file"><button class="file-name" data-open-file="${id}" title="Open ${name}">${icon('notepad')}<span>${name}<small>${new Date(file.updated).toLocaleDateString()}</small></span></button><select data-move-file="${id}" aria-label="Move ${name} to folder">${folders}</select><button class="text-button" data-download-file="${id}" aria-label="Download ${name}">Download</button><button class="text-button" data-delete-file="${id}" aria-label="Move ${name} to Recycle Bin">Delete</button></div>`;
+      },
+      renderTrash() {return `<div class="app-heading"><h2>Recycle Bin</h2><p>${this.trash.length} deleted text file${this.trash.length===1?'':'s'} · Restore or remove them permanently.</p></div>${this.trash.length?this.trash.map(file=>this.fileRow(file,true)).join(''):'<p class="muted" style="font-size:12px">Recycle Bin is empty.</p>'}`;},
+      render() {
+        return `<div class="files-layout"><nav class="files-sidebar" aria-label="File locations"></nav><div class="files-main"></div></div>`;
+      },
+      show(element,folder) {
+        if(!element)return;
+        this.currentFolder=folder;
+        $('.files-sidebar',element).innerHTML=['Home',...this.folders,'This PC','Cloud','Recycle Bin'].map(name=>`<button data-folder="${escapeHTML(name)}">${icon(name==='Home'?'home':name==='Recycle Bin'?'recycle':name==='Cloud'?'cloud':'files')}${escapeHTML(name)}</button>`).join('');
+        $$('[data-folder]',element).forEach(button=>button.classList.toggle('active',button.dataset.folder===folder));
+        const main=$('.files-main',element);
+        if(folder==='Recycle Bin'){main.innerHTML=this.renderTrash();return;}
+        if(folder==='Cloud'){main.innerHTML='<div class="app-heading"><h2>Cloud storage</h2><p>No cloud account is connected.</p></div>';return;}
+        const toolbar=`<div class="files-toolbar"><button class="secondary" data-file-action="import">Import text</button><button class="secondary" data-file-action="new">New text file</button><button class="secondary" data-file-action="folder">New folder</button></div><form class="folder-form" hidden><input maxlength="40" aria-label="Folder name" placeholder="Folder name" required><button class="secondary" type="submit">Create</button></form><input class="file-picker" type="file" accept=".txt,.md,.json,.csv,.log" multiple hidden aria-label="Select text files to import">`;
+        const folderCards=this.folders.map(name=>`<button class="folder" data-folder="${escapeHTML(name)}">${appIcon('files')}<strong>${escapeHTML(name)}</strong><small>${this.items.filter(file=>file.folder===name).length} files</small></button>`).join('');
+        let content='';
+        if(folder==='Home')content=`<div class="app-heading"><h2>Home</h2><p>Your text files are saved in this browser.</p></div><div class="folder-grid">${folderCards}</div><h3 class="file-list-heading">Recent files</h3>${this.items.length?[...this.items].sort((a,b)=>b.updated-a.updated).slice(0,6).map(file=>this.fileRow(file)).join(''):'<p class="muted">No files yet. Import or create one above.</p>'}`;
+        else {
+          const visible=folder==='This PC'?this.items:this.items.filter(file=>file.folder===folder);
+          const removeFolder=this.folders.slice(3).includes(folder)&&!visible.length?`<button class="text-button" data-file-action="delete-folder">Delete empty folder</button>`:'';
+          content=`<div class="app-heading"><h2>${escapeHTML(folder)}</h2><p>${visible.length} text file${visible.length===1?'':'s'} ${removeFolder}</p></div>${visible.length?visible.map(file=>this.fileRow(file)).join(''):'<p class="muted" style="font-size:12px">This folder is empty.</p>'}`;
+        }
+        main.innerHTML=toolbar+content;
+      },
+      refreshViews() {
+        const explorer=$('#window-files');if(explorer)this.show(explorer,this.currentFolder);
+        const recycle=$('#window-recycle .window-content');if(recycle)recycle.innerHTML=this.renderTrash();
+      },
+      mount(element) {
+        this.show(element,this.currentFolder);
+        element.addEventListener('click',event=>{
+          const folder=event.target.closest('[data-folder]')?.dataset.folder;
+          if(folder){this.show(element,folder);return;}
+          const action=event.target.closest('[data-file-action]')?.dataset.fileAction;
+          if(action==='import'){$('.file-picker',element)?.click();return;}
+          if(action==='new'){this.newFile();return;}
+          if(action==='folder'){const form=$('.folder-form',element);form.hidden=false;$('input',form).focus();return;}
+          if(action==='delete-folder'){this.folders=this.folders.filter(name=>name!==this.currentFolder);this.persist();this.refreshViews();this.show(element,'Home');return;}
+          const open=event.target.closest('[data-open-file]')?.dataset.openFile;
+          if(open){this.openFile(open);return;}
+          const download=event.target.closest('[data-download-file]')?.dataset.downloadFile;
+          if(download){this.download(this.items.find(file=>file.id===download));return;}
+          const remove=event.target.closest('[data-delete-file]')?.dataset.deleteFile;
+          if(remove){this.remove(remove);return;}
+          this.trashAction(event);
+        });
+        element.addEventListener('change',event=>{
+          if(event.target.matches('.file-picker')){this.import(event.target.files);event.target.value='';}
+          if(event.target.matches('[data-move-file]'))this.move(event.target.dataset.moveFile,event.target.value);
+        });
+        element.addEventListener('submit',event=>{
+          if(!event.target.matches('.folder-form'))return;
+          event.preventDefault();const input=$('input',event.target);
+          if(!this.createFolder(input.value))Notifications.show('Folder not created','Choose a unique folder name (up to 40 characters).');
+        });
+      },
+      trashAction(event) {
+        const restore=event.target.closest('[data-restore-file]')?.dataset.restoreFile;
+        if(restore){this.restore(restore);return;}
+        const permanent=event.target.closest('[data-permanent-file]')?.dataset.permanentFile;
+        if(permanent){const index=this.trash.findIndex(file=>file.id===permanent);if(index>=0&&confirm(`Delete ${this.trash[index].name} permanently?`)){this.trash.splice(index,1);this.persist();this.refreshViews();}}
+      },
+      mountRecycle(element){element.addEventListener('click',event=>this.trashAction(event));}
     };
     const Calculator = {
       value:'0', previous:null, operation:null, replace:true,
@@ -767,15 +1010,17 @@
       stop() { this.playing=false;this.setVolume(); }
     };
     const Apps = {
-      files:{title:'File Explorer',icon:'files',width:760,height:485,flush:true,render:()=>Files.render(),mount:el=>Files.mount(el),status:'Concept files · Your real filesystem is never accessed'},
-      notepad:{title:'Notepad',icon:'notepad',width:650,height:475,flush:true,render:()=>`<div class="notes-toolbar"><span style="font-size:11px">Notes.txt</span><button class="text-button" id="download-note">Save a copy ${icon('arrow')}</button></div><textarea class="note-editor" aria-label="Your notes" spellcheck="true"></textarea>`,status:'Saved in this browser · Changes save automatically',mount(el){
-        const editor=$('.note-editor',el);editor.value=note;
-        editor.addEventListener('input',()=>{note=editor.value;const saved=Storage.write('note',note);$('.window-status',el).textContent=`${saved?'Saved in this browser':'Session only · Browser storage unavailable'} · ${note.length} characters`;});
-        $('#download-note',el).addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([note],{type:'text/plain;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='Notes.txt';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+      files:{title:'File Explorer',icon:'files',width:760,height:485,flush:true,render:()=>Files.render(),mount:el=>Files.mount(el),status:'Text files saved in this browser'},
+      notepad:{title:'Notepad',icon:'notepad',width:650,height:475,flush:true,render:()=>`<div class="notes-toolbar"><span id="notepad-name" style="font-size:11px"></span><button class="text-button" id="open-note">Open text file</button><button class="text-button" id="download-note">Save a copy ${icon('arrow')}</button><input id="notepad-picker" type="file" accept=".txt,.md,.json,.csv,.log" hidden></div><textarea class="note-editor" maxlength="260000" aria-label="Your notes" spellcheck="true"></textarea>`,status:'Saved in this browser · Changes save automatically',mount(el){
+        const editor=$('.note-editor',el);Files.syncEditor();
+        editor.addEventListener('input',()=>{const file=Files.current();file.content=editor.value;file.updated=Date.now();const saved=Files.persist();Files.refreshViews();$('.window-status',el).textContent=`${file.folder} · ${saved?'Saved in this browser':'Session only · Browser storage unavailable'} · ${file.content.length} characters`;});
+        $('#download-note',el).addEventListener('click',()=>Files.download(Files.current()));
+        $('#open-note',el).addEventListener('click',()=>$('#notepad-picker',el).click());
+        $('#notepad-picker',el).addEventListener('change',async event=>{const count=await Files.import(event.target.files);event.target.value='';if(count)Files.syncEditor();});
       }},
       settings:{title:'Settings',icon:'settings',width:645,height:610,render:()=>Settings.render(),mount:el=>Settings.mount(el)},
       edge:{title:'Microsoft Edge',icon:'edge',width:740,height:470,flush:true,render:()=>`<form class="browser-toolbar" id="browser-form">${icon('search')}<input id="browser-address" type="text" aria-label="Search the web or enter a URL" placeholder="Search the web or enter an address" required><button class="icon-button" type="submit" aria-label="Go to website">${icon('arrow')}</button></form><div class="browser-home">${appIcon('edge')}<h2>New tab</h2><p>Enter a URL or search query above. Links open in a new tab.</p><div class="browser-links"><a href="https://www.wikipedia.org" target="_blank" rel="noopener noreferrer">Wikipedia ↗</a><a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub ↗</a><button class="secondary" data-app="notepad">Open Notepad</button></div><p style="font-size:10px;margin-top:26px">The concept works offline. External websites require internet.</p></div>`,mount(el){$('#browser-form',el).addEventListener('submit',e=>{e.preventDefault();const value=$('#browser-address',el).value.trim();if(!value)return;let url;try{const candidate=/^https?:\/\//i.test(value)?value:/^[\w.-]+\.[a-z]{2,}(?:[/:?#].*)?$/i.test(value)?`https://${value}`:null;if(candidate){url=new URL(candidate);if(!['https:','http:'].includes(url.protocol))throw new Error();}}catch{url=null;}window.open(url?url.href:`https://www.bing.com/search?q=${encodeURIComponent(value)}`,'_blank','noopener,noreferrer');});}},
-      recycle:{title:'Recycle Bin',icon:'recycle',width:540,height:370,render:()=>`<div style="text-align:center;padding:35px 15px">${appIcon('recycle')}<h2 style="margin:22px 0 12px">Recycle Bin is empty</h2><p class="muted" style="font-size:12px;line-height:1.8">No files have been deleted in this demo.</p></div>`,status:'0 items'},
+      recycle:{title:'Recycle Bin',icon:'recycle',width:540,height:370,render:()=>Files.renderTrash(),mount:el=>Files.mountRecycle(el)},
       calculator:{title:'Calculator',icon:'calculator',width:380,height:490,render:()=>Calculator.render(),mount:el=>Calculator.mount(el)},
       photos:{title:'Photos',icon:'image',width:690,height:385,render:()=>`<div class="app-heading"><h2>Photos</h2><p>Select a wallpaper below.</p></div><div class="photo-grid"><button class="photo-art" data-wallpaper="bloom">01 / Bloom</button><button class="photo-art" data-wallpaper="dusk">02 / Dusk</button><button class="photo-art" data-wallpaper="aurora">03 / Aurora</button></div>`,mount:()=>Settings.sync()},
       music:{title:'Music',icon:'music',width:440,height:455,render:()=>`<div class="music-app"><div class="music-art"></div><h2>Ambient audio.</h2><p id="music-status">Audio is generated locally.</p><div class="row"><button class="primary" id="music-toggle" aria-label="Play ambient audio">${icon('play')}</button></div><p style="font-size:10px;margin-top:20px">Use Quick Settings to adjust volume.</p></div>`,mount(el){Music.update();$('#music-toggle',el).addEventListener('click',()=>Music.toggle());},unmount:()=>Music.stop()},
@@ -1091,7 +1336,10 @@
         $('#login-welcome').hidden = true;
       },
       clearWorkspace() {
+        const wasRestoring = Windows.restoring;
+        Windows.restoring = true;
         [...Windows.items.keys()].forEach(id => Windows.close(id));
+        Windows.restoring = wasRestoring;
         Focus.deadline = null;
         Focus.seconds = 25 * 60;
         Focus.render();
@@ -1179,6 +1427,7 @@
           $('#desktop').inert = false;
           $('#desktop').removeAttribute('aria-hidden');
           $('#session-shell').classList.add('leaving');
+          Windows.restoreWorkspace();
           $('[data-panel="start-menu"]').focus({preventScroll: true});
           this.later(() => { $('#session-shell').hidden = true; }, 450);
         }, 850);
@@ -1264,11 +1513,26 @@
     });
     document.addEventListener('keydown',event=>{
       if(Session.phase!=='desktop'){Session.handleKey(event);return;}
+      if((event.altKey&&event.key==='Tab')||(event.ctrlKey&&event.shiftKey&&event.code==='Space')){
+        event.preventDefault();Windows.cycle(event.altKey&&event.shiftKey);return;
+      }
+      if((event.altKey&&event.key==='F4')||(event.ctrlKey&&event.altKey&&event.code==='KeyW')){
+        if(Windows.active){event.preventDefault();Windows.close(Windows.active);}return;
+      }
+      const editing=!!event.target.closest('input,textarea,select,[contenteditable="true"]');
+      if(event.ctrlKey&&event.shiftKey&&!editing&&Windows.active&&!$('.panel.open')&&event.code.startsWith('Arrow')){
+        const id=Windows.active;
+        if(event.code==='ArrowLeft'||event.code==='ArrowRight')Windows.snap(id,event.code==='ArrowLeft'?'left':'right');
+        else if(event.code==='ArrowUp'){if(!Windows.items.get(id).element.classList.contains('maximized'))Windows.maximize(id);}
+        else if(event.code==='ArrowDown'){const item=Windows.items.get(id);item.element.classList.contains('maximized')?Windows.restoreRect(item):Windows.minimize(id);}
+        else return;
+        event.preventDefault();return;
+      }
       if(event.key==='Escape'){
         const panels=$$('.panel.open');if(panels.length)Panels.close(panels.at(-1).id,true);
         $$('.snap-picker.open').forEach(picker=>picker.classList.remove('open'));
       }
-      if(event.ctrlKey&&event.code==='Space'){event.preventDefault();Panels.toggle('start-menu');}
+      if(event.ctrlKey&&!event.shiftKey&&event.code==='Space'){event.preventDefault();Panels.toggle('start-menu');}
       if(Windows.active==='calculator'&&!event.target.closest('input,textarea,select')&&!$('.panel.open:not(#copilot-panel)')){
         const mapped=({'*':'×','/':'÷','-':'−','Enter':'=','Backspace':'⌫','Delete':'C'})[event.key]||event.key;
         if(/^[0-9.+%×÷−=]$/.test(mapped)||['C','⌫'].includes(mapped)){event.preventDefault();Calculator.press(mapped);}
@@ -1318,7 +1582,7 @@
       particle.style.cssText=`left:${12+Math.random()*80}%;top:${20+Math.random()*80}%;--duration:${12+Math.random()*15}s;--delay:${-Math.random()*27}s`;
       $('#particles').append(particle);
     }
-    renderTaskbar();Battery.init();Copilot.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
+    Files.init();renderTaskbar();Battery.init();Copilot.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
     setInterval(updateClock,1000);
     Session.startBoot();
   })();
