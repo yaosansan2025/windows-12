@@ -17,7 +17,11 @@ Enter the password to open the desktop. An incorrect password keeps the sign-in 
 
 Single-click a desktop icon to select it, double-click to open it, drag a window by its title bar, and use its minimize, maximize, and close controls. Explore Start, Search, Widgets, Copilot, Quick Settings, and Settings from the taskbar. Click the clock for the calendar or right-click the desktop for its context menu. Press **Esc** to dismiss open panels.
 
+Drag a window to the left or right edge to snap it into half the workspace, or to the top to maximize it. This works with a mouse or touch. Hover over a running taskbar icon to preview its window.
+
 File Explorer supports browser-local text files (`.txt`, `.md`, `.json`, `.csv`, `.log`). Use **Import text** to select files, **New folder** to organize them, **Download** to save a copy to your device, and Recycle Bin to restore deleted files. Notepad edits the selected file automatically. Imports are limited to 256 KB per file, 60 active files, and 1.5 million characters total. Browser storage has its own quota, so use **Download** for an independent copy of anything important. Local files never sync between devices or between different site URLs.
+
+In **Settings → Workspace backup**, choose **Download backup** to export files, folders, Recycle Bin, to-dos, appearance, and open-window layout as JSON. **Import backup** validates the file and asks before replacing the browser's current workspace. This lets you move data between devices or site URLs. Copilot API credentials and chat history are never included in backups.
 
 The desktop restores open windows, their sizes and positions, minimized/maximized state, and active window after sign-in or page reload. Keyboard shortcuts (when the browser lets the page receive them):
 
@@ -33,22 +37,24 @@ Browsers and operating systems may reserve `Alt+Tab` and `Alt+F4`; the alternati
 
 ## Deploy to GitHub Pages
 
-The included [deployment workflow](.github/workflows/deploy.yml) publishes only `index.html` and runs on pushes to `main` or manually.
+The included [deployment workflow](.github/workflows/deploy.yml) is manual until GitHub Pages is enabled. It publishes the standalone webpage and the optional PWA assets. Pushes to `main` do not run it, so an unconfigured Pages site cannot keep adding failed deployment runs.
 
 1. In this repository, open **Settings → Pages**.
 2. Under **Build and deployment**, choose **GitHub Actions** as the source. GitHub Pages availability depends on repository visibility and the account plan.
-3. Push these files to `main`, or open **Actions → Deploy static site to Pages → Run workflow**.
+3. Open **Actions → Deploy static site to Pages → Run workflow**.
 4. After the deployment succeeds, the workflow summary links to the live website. For this repository, the default URL is `https://yaosansan2025.github.io/windows-12/`.
 
 You can also upload `index.html` to any static website host. Serve it as the site's index document; no server runtime, environment variables, or package installation is required.
+
+Hosted HTTPS versions can be installed as a PWA through the browser's install menu (or the **Install app** button in Settings when offered). After the first online visit, the app shell is cached for offline use. PWA installation uses `manifest.webmanifest`, `sw.js`, and the `pwa/` icons; double-clicking the standalone `index.html` does not require them.
 
 ## Cloudflare deployment
 
 The same `index.html` is deployed at [`https://sbti.christmas/windows12`](https://sbti.christmas/windows12) through the existing Cloudflare Worker named `windows-12`. The Cloudflare routes are `sbti.christmas/windows12` and `sbti.christmas/windows12/*`; the rest of `sbti.christmas` remains on the `sbti` Pages project.
 
-The repository includes [`windows12/index.html`](windows12/index.html) as an exact copy of the original [`index.html`](index.html). Cloudflare's connected build deploys the repository as static assets, so both `/windows12` (redirecting to `/windows12/`) and `/windows12/` serve the original app. No separate client or backend is deployed. The optional Copilot API connection still requires a separately configured compatible endpoint, as described below.
+The repository includes [`windows12/index.html`](windows12/index.html) as an exact copy of the original [`index.html`](index.html), together with matching PWA assets under `windows12/`. Cloudflare's connected build deploys the repository as static assets, so both `/windows12` (redirecting to `/windows12/`) and `/windows12/` serve the original app. No separate client or backend is deployed. The optional Copilot API connection still requires a separately configured compatible endpoint, as described below.
 
-Pushes to `main` trigger an automatic Cloudflare Worker deployment. When changing the app, update `index.html` and copy the same contents to `windows12/index.html` in the same commit. After the build completes, verify [`https://sbti.christmas/windows12/`](https://sbti.christmas/windows12/) and keep the Worker route patterns in place.
+Pushes to `main` trigger an automatic Cloudflare Worker deployment. When changing the app, update `index.html` and mirror its PWA assets into `windows12/` in the same commit. After the build completes, verify [`https://sbti.christmas/windows12/`](https://sbti.christmas/windows12/) and keep the Worker route patterns in place.
 
 The Cloudflare site and the GitHub Pages site have separate browser storage because they use different origins. Files and preferences created at one URL do not automatically appear at the other.
 

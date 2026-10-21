@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#080b19">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpath fill=%27%238baaff%27 d=%27M2 3h9v8H2zm11 0h9v8h-9zM2 13h9v8H2zm11 0h9v8h-9z%27/%3E%3C/svg%3E">
   <meta name="description" content="Interactive Windows 12 desktop concept with startup, sign-in, apps, widgets, and window management.">
   <title>Windows 12</title>
@@ -230,6 +231,15 @@
     .virtual-file .text-button { padding:5px;font-size:10px; }
     .notes-toolbar { gap:10px;flex-wrap:wrap; }
     #notepad-name { flex:1;min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    /* Drag feedback and taskbar previews stay above windows without taking input. */
+    #snap-preview { position:absolute;z-index:9999;pointer-events:none;border:2px solid #a8c8ff99;border-radius:15px;background:#89aaff24;box-shadow:inset 0 0 40px #b7a7ff1a;transition:all .16s var(--ease); }
+    #window-preview { position:absolute;z-index:3050;pointer-events:none;width:210px;padding:14px;border-radius:15px;box-shadow:0 18px 45px #0007; }
+    #window-preview .preview-title { display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600; }
+    #window-preview .preview-title .app-icon { width:21px;height:21px; }
+    #window-preview .preview-title .icon { width:18px;height:18px; }
+    #window-preview .preview-content { margin-top:11px;min-height:72px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--muted);font-size:10px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical; }
+    #window-preview small { display:block;margin-top:8px;font-size:9px; }
+    @media(max-width:560px) { #window-preview { display:none!important; } }
   </style>
 </head>
 <body class="session-locked">
@@ -312,8 +322,9 @@
       <button class="desktop-icon" data-desktop-app="notepad" aria-label="Notepad, double-click to open"><span class="app-icon notepad"><svg class="icon"><use href="#i-notepad"/></svg></span><span>Notepad</span></button>
     </nav>
     <button id="desktop-weather" data-action="widgets" aria-label="Open widgets and weather"><span class="sun-art" aria-hidden="true"></span><span><strong>18°C &nbsp; Partly cloudy</strong><small>Vancouver · Weather preview</small></span></button>
-    <section id="window-layer" aria-label="Open application windows"></section>
+    <section id="window-layer" aria-label="Open application windows"><div id="snap-preview" hidden aria-hidden="true"></div></section>
     <nav id="taskbar" class="glass" aria-label="Taskbar"></nav>
+    <div id="window-preview" class="glass" role="tooltip" hidden></div>
     <div class="clock-tray"><button id="clock-button" class="clock-button" data-panel="calendar-panel" aria-expanded="false" aria-controls="calendar-panel" aria-label="Open calendar"><span id="tray-time"></span><small id="tray-date"></small></button><button class="icon-button notification-button" data-panel="notification-panel" aria-expanded="false" aria-controls="notification-panel" aria-label="Open notifications"><svg class="icon" style="width:17px"><use href="#i-bell"/></svg></button></div>
     <section id="start-menu" class="panel bottom-panel glass" aria-label="Start menu" inert><div class="row between" style="margin-bottom:20px"><div><h2 style="font-size:20px">Start</h2></div><span class="avatar">U</span></div><label class="start-search"><svg class="icon"><use href="#i-search"/></svg><input id="start-search" type="search" placeholder="Search apps and settings" aria-label="Search apps" autocomplete="off"><span class="badge">⌕</span></label><div class="row between start-heading"><h3>Pinned</h3></div><div id="app-grid" class="app-grid"></div><section class="recommended"><div class="row between start-heading"><h3>Suggested</h3></div><div class="recommend-grid"><button class="recommend-item" data-app="notepad"><svg class="icon"><use href="#i-notepad"/></svg><span><strong>Notepad</strong><small>Open your notes</small></span></button><button class="recommend-item" data-app="photos"><svg class="icon"><use href="#i-palette"/></svg><span><strong>Photos</strong><small>Choose a wallpaper</small></span></button></div></section><footer class="start-bottom"><button class="row" data-action="lock"><span class="avatar">U</span>User <svg class="icon" style="width:12px;color:var(--muted)"><use href="#i-right"/></svg></button><div class="power-options"><button class="icon-button" data-action="lock" aria-label="Sleep"><svg class="icon" style="width:17px"><use href="#i-moon"/></svg></button><button class="icon-button" data-action="restart" aria-label="Restart"><svg class="icon" style="width:17px"><use href="#i-refresh"/></svg></button><button class="icon-button" data-action="signout" aria-label="Sign out"><svg class="icon" style="width:17px"><use href="#i-power"/></svg></button></div></footer></section>
     <section id="calendar-panel" class="panel bottom-panel glass" aria-label="Calendar" inert><div class="row between"><p class="calendar-current" id="calendar-current"></p><button class="icon-button" data-close-panel aria-label="Close calendar"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="row between calendar-nav"><strong id="calendar-month"></strong><div class="row" style="gap:3px"><button class="icon-button" id="calendar-prev" aria-label="Previous month"><svg class="icon"><use href="#i-left"/></svg></button><button class="text-button" id="calendar-today">Today</button><button class="icon-button" id="calendar-next" aria-label="Next month"><svg class="icon"><use href="#i-right"/></svg></button></div></div><div id="calendar-grid" class="calendar-grid"></div><div class="calendar-agenda"><strong id="agenda-date">Today</strong><span>No events scheduled.</span></div></section>
@@ -562,6 +573,7 @@
       },
       minimize(id) {
         const item = this.items.get(id);
+        this.hidePreview();
         item.element.classList.add('minimized');
         item.element.inert = true;
         item.element.classList.remove('focused');
@@ -582,11 +594,13 @@
       close(id) {
         const item = this.items.get(id);
         if (!item) return;
+        this.hidePreview();
         item.element.classList.add('closing');
         // A new copy of this app can open before the close animation finishes.
         item.element.removeAttribute('id');
         item.element.inert = true;
         Apps[id].unmount?.();
+        $$('[id]',item.element).forEach(node=>node.removeAttribute('id'));
         item.resizeObserver?.disconnect();
         this.items.delete(id);
         setTimeout(() => item.element.remove(), 220);
@@ -637,6 +651,40 @@
         Object.assign(item.element.style, {left:`${side === 'left' ? 8 : width + 16}px`,top:'8px',width:`${width}px`,height:`${layer.clientHeight - 8}px`});
         this.saveWorkspace();
       },
+      snapZone(x, y) {
+        const rect = $('#window-layer').getBoundingClientRect();
+        if (y <= rect.top + 28) return 'full';
+        if (x <= rect.left + 28) return innerWidth < 650 ? 'full' : 'left';
+        if (x >= rect.right - 28) return innerWidth < 650 ? 'full' : 'right';
+        return null;
+      },
+      showSnapPreview(side) {
+        const preview = $('#snap-preview'), layer = $('#window-layer');
+        if (!side) { preview.hidden = true; return; }
+        const half = (layer.clientWidth - 24) / 2;
+        Object.assign(preview.style, {
+          left:`${side === 'right' ? half + 16 : 8}px`, top:'8px',
+          width:`${side === 'full' ? layer.clientWidth - 16 : half}px`,
+          height:`${layer.clientHeight - 16}px`
+        });
+        preview.hidden = false;
+      },
+      showPreview(id, button) {
+        const item = this.items.get(id);
+        if (!item || Session.phase !== 'desktop' || innerWidth < 561) return;
+        const preview = $('#window-preview'), app = Apps[id];
+        const snippet = id === 'notepad' ? $('.note-editor',item.element)?.value : $('.window-content',item.element)?.innerText;
+        preview.innerHTML = `<div class="preview-title">${appIcon(app.icon || id,app.emoji)}<span>${escapeHTML(app.title)}</span></div><div class="preview-content">${escapeHTML((snippet || 'Window is open.').trim().slice(0,180))}</div><small>${item.element.classList.contains('minimized') ? 'Minimized · click to restore' : 'Click to switch to this window'}</small>`;
+        preview.hidden = false;
+        const bounds = button.getBoundingClientRect();
+        preview.style.left = `${clamp(bounds.left + bounds.width / 2 - preview.offsetWidth / 2, 8, innerWidth - preview.offsetWidth - 8)}px`;
+        preview.style.top = `${Math.max(8,bounds.top - preview.offsetHeight - 12)}px`;
+        button.setAttribute('aria-describedby','window-preview');
+      },
+      hidePreview() {
+        $('#window-preview').hidden = true;
+        $$('[aria-describedby="window-preview"]').forEach(button => button.removeAttribute('aria-describedby'));
+      },
       enableDrag(id) {
         const item = this.items.get(id), element = item.element, bar = $('.window-titlebar', element);
         bar.addEventListener('dblclick', event => { if (!event.target.closest('button')) this.maximize(id); });
@@ -645,9 +693,11 @@
           event.preventDefault();
           this.focus(id);
           const startX = event.clientX, startY = event.clientY;
+          const startRect = item.savedRect || {left:element.style.left,top:element.style.top,width:element.style.width,height:element.style.height};
           const grabRatio = (startX - element.offsetLeft) / element.offsetWidth;
           let offsetX = startX - element.offsetLeft, offsetY = startY - element.offsetTop;
           let dragging = false;
+          let snapSide = null;
           bar.setPointerCapture(event.pointerId);
           const move = e => {
             // Restore only after real movement, preserving click and double-click behavior.
@@ -663,8 +713,18 @@
             const layer = $('#window-layer');
             element.style.left = `${clamp(e.clientX - offsetX, 0, layer.clientWidth - element.offsetWidth)}px`;
             element.style.top = `${clamp(e.clientY - offsetY, 0, layer.clientHeight - element.offsetHeight)}px`;
+            snapSide = this.snapZone(e.clientX,e.clientY);
+            this.showSnapPreview(snapSide);
           };
-          const end = () => { bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', end); bar.removeEventListener('pointercancel', end); if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId); if (dragging) this.saveWorkspace(); };
+          const end = e => {
+            bar.removeEventListener('pointermove', move);
+            bar.removeEventListener('pointerup', end);
+            bar.removeEventListener('pointercancel', end);
+            if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId);
+            this.showSnapPreview(null);
+            if (dragging && e.type === 'pointerup' && snapSide) { item.savedRect = startRect; this.snap(id,snapSide); }
+            else if (dragging) { item.savedRect = null; this.saveWorkspace(); }
+          };
           bar.addEventListener('pointermove', move);
           bar.addEventListener('pointerup', end);
           bar.addEventListener('pointercancel', end);
@@ -712,7 +772,9 @@
             {left:element.offsetLeft,top:element.offsetTop,width:element.offsetWidth,height:element.offsetHeight};
           return {id,...bounds,maximized,minimized:element.classList.contains('minimized'),z:Number(element.style.zIndex)||0};
         });
-        Storage.write('workspace',{windows,active:this.active});
+        const snapshot = {windows,active:this.active};
+        Storage.write('workspace',snapshot);
+        return snapshot;
       },
       restoreWorkspace() {
         if (this.items.size) return;
@@ -779,6 +841,10 @@
         $('#theme-toggle', element).addEventListener('click', () => { preferences.theme = preferences.theme === 'dark' ? 'light' : 'dark'; this.apply(); });
         $('#motion-toggle', element).addEventListener('click', () => { preferences.motion = !preferences.motion; this.apply(); });
         $('#taskbar-position', element).addEventListener('change', event => { preferences.taskbar = event.target.value; this.apply(); });
+        $('.window-content', element).insertAdjacentHTML('beforeend', WorkspaceBackup.render());
+        WorkspaceBackup.mount(element);
+        $('.window-content', element).insertAdjacentHTML('beforeend', PWA.render());
+        PWA.mount(element);
       }
     };
 
@@ -957,6 +1023,121 @@
         if(permanent){const index=this.trash.findIndex(file=>file.id===permanent);if(index>=0&&confirm(`Delete ${this.trash[index].name} permanently?`)){this.trash.splice(index,1);this.persist();this.refreshViews();}}
       },
       mountRecycle(element){element.addEventListener('click',event=>this.trashAction(event));}
+    };
+    // Portable backup includes browser-local data, never Copilot API credentials.
+    const WorkspaceBackup = {
+      keys:['preferences','folders','files','trash','activeFile','todos','workspace'],
+      render() {
+        return `<section class="settings-section" id="backup-settings"><h3>Workspace backup</h3><p class="muted" style="font-size:11px;line-height:1.6;margin-bottom:12px">Export your text files, folders, to-do list, appearance, and window layout. Import replaces this browser's workspace.</p><div class="row" style="flex-wrap:wrap"><button class="secondary" id="backup-export" type="button">Download backup</button><button class="secondary" id="backup-import" type="button">Import backup</button><input id="backup-picker" type="file" accept=".json,application/json" hidden aria-label="Choose Windows 12 backup"></div><p id="backup-status" class="muted" role="status" style="font-size:10px;line-height:1.5;margin-top:10px"></p></section>`;
+      },
+      mount(element) {
+        $('#backup-export',element).addEventListener('click',()=>this.export());
+        $('#backup-import',element).addEventListener('click',()=>$('#backup-picker',element).click());
+        $('#backup-picker',element).addEventListener('change',async event=>{
+          const file=event.target.files[0];
+          event.target.value='';
+          if(file)await this.import(file);
+        });
+      },
+      status(message) {const target=$('#backup-status');if(target)target.textContent=message;},
+      export() {
+        const workspace=Windows.saveWorkspace() || Storage.read('workspace',{windows:[],active:null});
+        const data={preferences:{...preferences},folders:Files.folders.slice(3),files:Files.items,trash:Files.trash,activeFile:Files.activeId,todos,workspace};
+        const backup={format:'windows-12-workspace',version:1,createdAt:new Date().toISOString(),data};
+        const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}));
+        const link=document.createElement('a');
+        link.href=url;link.download=`windows-12-backup-${new Date().toISOString().slice(0,10)}.json`;
+        document.body.append(link);link.click();link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+        this.status('Backup downloaded. Keep the JSON file somewhere safe.');
+      },
+      validate(backup) {
+        if(!backup || backup.format!=='windows-12-workspace' || backup.version!==1 || !backup.data || typeof backup.data!=='object')throw new Error('This is not a supported Windows 12 backup.');
+        const data=backup.data, defaults=['Documents','Pictures','Music'];
+        if(!Array.isArray(data.folders)||data.folders.length>22)throw new Error('Backup folders are invalid.');
+        const folders=[...defaults];
+        for(const name of data.folders){
+          if(typeof name!=='string'||!name||name.length>40||name.trim()!==name||/[\x00-\x1f/\\]/.test(name)||Files.reserved.some(value=>value.toLowerCase()===name.toLowerCase())||folders.some(value=>value.toLowerCase()===name.toLowerCase()))throw new Error('Backup folders are invalid.');
+          folders.push(name);
+        }
+        const ids=new Set();let totalChars=0;
+        const validateFiles=(list,label)=>{
+          if(!Array.isArray(list)||list.length>60)throw new Error(`Backup ${label} are invalid.`);
+          return list.map(file=>{
+            if(!file||typeof file.id!=='string'||!file.id||ids.has(file.id)||typeof file.name!=='string'||!file.name||file.name.length>120||/[\x00-\x1f/\\]/.test(file.name)||!folders.includes(file.folder)||typeof file.content!=='string'||file.content.length>260000||!Number.isFinite(file.updated))throw new Error(`Backup ${label} are invalid.`);
+            ids.add(file.id);totalChars+=file.content.length;
+            return {id:file.id,name:file.name,folder:file.folder,content:file.content,updated:file.updated};
+          });
+        };
+        const files=validateFiles(data.files,'files'),trash=validateFiles(data.trash,'Recycle Bin');
+        if(totalChars>2000000)throw new Error('Backup is too large for this workspace.');
+        if(!Array.isArray(data.todos)||data.todos.length>100||data.todos.some(todo=>!todo||typeof todo.text!=='string'||todo.text.length>140||typeof todo.done!=='boolean'))throw new Error('Backup to-do list is invalid.');
+        const raw=data.preferences||{};
+        const importedPreferences={theme:raw.theme==='light'?'light':'dark',wallpaper:['bloom','aurora','dusk'].includes(raw.wallpaper)?raw.wallpaper:'bloom',taskbar:raw.taskbar==='left'?'left':'center',motion:raw.motion!==false};
+        const layout=data.workspace;
+        if(!layout||!Array.isArray(layout.windows)||layout.windows.length>20)throw new Error('Backup window layout is invalid.');
+        const seenWindows=new Set();
+        const windows=layout.windows.map(entry=>{
+          if(!entry||typeof entry.id!=='string'||!Apps[entry.id]||seenWindows.has(entry.id)||!['left','top','width','height','z'].every(key=>Number.isFinite(entry[key])&&Math.abs(entry[key])<100000))throw new Error('Backup window layout is invalid.');
+          seenWindows.add(entry.id);
+          return {id:entry.id,left:entry.left,top:entry.top,width:entry.width,height:entry.height,z:entry.z,maximized:!!entry.maximized,minimized:!!entry.minimized};
+        });
+        return {preferences:importedPreferences,folders:data.folders,files,trash,activeFile:files.some(file=>file.id===data.activeFile)?data.activeFile:null,todos:data.todos.map(todo=>({text:todo.text,done:todo.done})),workspace:{windows,active:seenWindows.has(layout.active)?layout.active:null}};
+      },
+      async import(file) {
+        if(file.size>6000000){this.status('Backup is too large (maximum 6 MB).');return;}
+        let data;
+        try{data=this.validate(JSON.parse(await file.text()));}
+        catch(error){this.status(error instanceof SyntaxError?'Backup JSON could not be read.':error.message);return;}
+        if(!confirm('Replace this browser\'s files, to-do list, settings, and window layout with the backup?')){this.status('Import canceled.');return;}
+        try{
+          const previous=Object.fromEntries(this.keys.map(key=>[key,localStorage.getItem(`win12-${key}`)]));
+          try{
+            this.keys.forEach(key=>localStorage.removeItem(`win12-${key}`));
+            this.keys.forEach(key=>localStorage.setItem(`win12-${key}`,JSON.stringify(data[key])));
+          }catch(error){
+            this.keys.forEach(key=>localStorage.removeItem(`win12-${key}`));
+            this.keys.forEach(key=>{if(previous[key]!==null)localStorage.setItem(`win12-${key}`,previous[key]);});
+            throw error;
+          }
+          location.reload();
+        }catch{this.status('Browser storage is unavailable or full. The current workspace was kept.');}
+      }
+    };
+    // Hosted HTTPS builds can install and cache the shell. file:// stays standalone.
+    const PWA = {
+      promptEvent:null,
+      init() {
+        const hosted=location.protocol==='https:' || ['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+        if(!hosted)return;
+        const manifest=document.createElement('link');manifest.rel='manifest';manifest.href='./manifest.webmanifest';document.head.append(manifest);
+        const appleIcon=document.createElement('link');appleIcon.rel='apple-touch-icon';appleIcon.href='./pwa/icon-192.png';document.head.append(appleIcon);
+        window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();this.promptEvent=event;this.sync();});
+        window.addEventListener('appinstalled',()=>{this.promptEvent=null;this.sync();});
+        if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>this.sync());
+      },
+      render() {
+        return `<section class="settings-section"><h3>Install this desktop</h3><p id="pwa-status" class="muted" style="font-size:11px;line-height:1.6;margin-bottom:12px"></p><button id="pwa-install" class="secondary" type="button" hidden>Install app</button></section>`;
+      },
+      mount(element) {
+        $('#pwa-install',element).addEventListener('click',()=>this.install());
+        this.sync();
+      },
+      sync() {
+        const button=$('#pwa-install'),status=$('#pwa-status');
+        if(!button||!status)return;
+        const installed=matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+        button.hidden=installed||!this.promptEvent;
+        status.textContent=installed?'Installed app. Your desktop also works offline.':location.protocol==='file:'?'Installation is available from the hosted HTTPS website.':this.promptEvent?'Install for a full-screen desktop and offline access.':'Use your browser menu to install this site when supported. Offline access begins after the first online visit.';
+      },
+      async install() {
+        if(!this.promptEvent)return;
+        const prompt=this.promptEvent;
+        this.promptEvent=null;
+        prompt.prompt();
+        await prompt.userChoice;
+        this.sync();
+      }
     };
     const Calculator = {
       value:'0', previous:null, operation:null, replace:true,
@@ -1472,6 +1653,21 @@
       'display-settings'(){launch('settings');$('#display-settings').scrollIntoView({block:'nearest',behavior:preferences.motion?'smooth':'instant'});},
       continuity(){Notifications.show('Device sync preview','No devices are connected in this demo.');}
     };
+    // Taskbar previews use delegation because running-app buttons are rebuilt.
+    $('#taskbar').addEventListener('pointerover',event=>{
+      const button=event.target.closest('[data-task-app]');
+      if(button && event.pointerType!=='touch' && !button.contains(event.relatedTarget))Windows.showPreview(button.dataset.taskApp,button);
+    });
+    $('#taskbar').addEventListener('pointerout',event=>{
+      const button=event.target.closest('[data-task-app]');
+      if(button && !button.contains(event.relatedTarget))Windows.hidePreview();
+    });
+    $('#taskbar').addEventListener('focusin',event=>{
+      const button=event.target.closest('[data-task-app]');
+      if(button)Windows.showPreview(button.dataset.taskApp,button);
+    });
+    $('#taskbar').addEventListener('focusout',()=>Windows.hidePreview());
+    $('#taskbar').addEventListener('click',()=>Windows.hidePreview());
     document.addEventListener('click',event=>{
       if(Session.phase!=='desktop')return;
       const button=event.target.closest('button');
@@ -1582,7 +1778,7 @@
       particle.style.cssText=`left:${12+Math.random()*80}%;top:${20+Math.random()*80}%;--duration:${12+Math.random()*15}s;--delay:${-Math.random()*27}s`;
       $('#particles').append(particle);
     }
-    Files.init();renderTaskbar();Battery.init();Copilot.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
+    Files.init();renderTaskbar();Battery.init();Copilot.init();PWA.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
     setInterval(updateClock,1000);
     Session.startBoot();
   })();

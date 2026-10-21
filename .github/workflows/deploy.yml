@@ -1,8 +1,6 @@
 name: Deploy static site to Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -29,11 +27,13 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      # Publish only the self-contained webpage, never repository metadata.
+      # Publish the standalone webpage and optional PWA assets, never repository metadata.
       - name: Prepare website
         run: |
           mkdir -p "$RUNNER_TEMP/windows-12-site"
           cp index.html "$RUNNER_TEMP/windows-12-site/index.html"
+          cp manifest.webmanifest sw.js "$RUNNER_TEMP/windows-12-site/"
+          cp -R pwa "$RUNNER_TEMP/windows-12-site/pwa"
 
       - name: Upload website
         uses: actions/upload-pages-artifact@v3

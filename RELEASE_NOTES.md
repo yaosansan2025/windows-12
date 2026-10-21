@@ -1,10 +1,10 @@
-# Windows 12 concept — V1.1.0
+# Windows 12 concept — V1.2.0
 
-This release makes the browser desktop useful across sessions. Download `index.html` and double-click it, or open the hosted site. The page still contains all HTML, CSS, JavaScript, icons, and wallpaper artwork in one file, with no runtime dependencies, CDN, build step, or backend.
+This release adds portable workspace backups, more natural window handling, and optional PWA installation for the hosted site. Download `index.html` and double-click it for the standalone desktop; it still needs no runtime dependencies, CDN, build step, or backend.
 
-- Open windows now restore after reload or sign-in, including position, size, minimized/maximized state, and focus.
-- File Explorer supports local text-file import, folders, move, download, Recycle Bin, and restore. Notepad edits the selected file with automatic browser-local saving.
-- Window switching, closing, and snap layouts have keyboard shortcuts, with alternatives for browser-reserved keys.
-- The existing Cloudflare Worker deployment at `sbti.christmas/windows12/` receives the same update as GitHub Pages.
+- Settings can export and import a validated JSON backup of files, folders, Recycle Bin, to-dos, appearance, and window layout. Copilot credentials are excluded.
+- Drag windows to an edge to snap or maximize them, including on touch devices. Hover over taskbar apps for a window preview.
+- Hosted HTTPS builds provide a manifest, install icons, and an offline service worker. The single `index.html` file still opens locally by double-clicking.
+- GitHub Pages deployment is manual until the repository owner enables Pages; this stops an unconfigured site from producing new failed runs. Cloudflare's existing Worker continues to deploy from `main`.
 
-The BIOS/login screens and cloud, AI demo, and system integrations remain an unofficial UI concept. Login is simulated. The optional Copilot API connection remains client-side; this release does not add a backend proxy.
+The BIOS/login screens and cloud, AI demo, and system integrations remain an unofficial UI concept. Login is simulated. The optional Copilot API connection remains client-side; no backend proxy is included.
