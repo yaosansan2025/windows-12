@@ -37,12 +37,7 @@ Browsers and operating systems may reserve `Alt+Tab` and `Alt+F4`; the alternati
 
 ## Deploy to GitHub Pages
 
-The included [deployment workflow](.github/workflows/deploy.yml) is manual until GitHub Pages is enabled. It publishes the standalone webpage and the optional PWA assets. Pushes to `main` do not run it, so an unconfigured Pages site cannot keep adding failed deployment runs.
-
-1. In this repository, open **Settings → Pages**.
-2. Under **Build and deployment**, choose **GitHub Actions** as the source. GitHub Pages availability depends on repository visibility and the account plan.
-3. Open **Actions → Deploy static site to Pages → Run workflow**.
-4. After the deployment succeeds, the workflow summary links to the live website. For this repository, the default URL is `https://yaosansan2025.github.io/windows-12/`.
+The included [deployment workflow](.github/workflows/deploy.yml) publishes the standalone webpage and optional PWA assets after each push to `main`. You can also run it manually from **Actions → Deploy static site to Pages → Run workflow**. In **Settings → Pages**, the build source must be **GitHub Actions**. The website URL is [yaosansan2025.github.io/windows-12](https://yaosansan2025.github.io/windows-12/).
 
 You can also upload `index.html` to any static website host. Serve it as the site's index document; no server runtime, environment variables, or package installation is required.
 
