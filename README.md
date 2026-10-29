@@ -17,11 +17,17 @@ Enter the password to open the desktop. An incorrect password keeps the sign-in 
 
 Single-click a desktop icon to select it, double-click to open it, drag a window by its title bar, and use its minimize, maximize, and close controls. Explore Start, Search, Widgets, Copilot, Quick Settings, and Settings from the taskbar. Click the clock for the calendar or right-click the desktop for its context menu. Press **Esc** to dismiss open panels.
 
+Drag desktop shortcuts to arrange them on a grid. Hold **Ctrl**, **Command**, or **Shift** to select several shortcuts, or drag a rectangle over an empty part of the desktop. Selected shortcuts move together; occupied grid slots cannot be overwritten. Positions survive reloads and adapt to the available space. Use arrow keys to select shortcuts, Shift+arrow to extend selection, and Enter to open one. On touch devices, tap a shortcut once to open it.
+
+Start searches application names, browser-local filenames and folders, and settings such as wallpaper, visual effects, and workspace backup. Use **Up/Down** to choose a result and **Enter** to open it. **Esc** clears the query before closing Start. Recently opened apps, files, and settings appear below the pinned apps; search and history stay in the browser.
+
+In **Settings → Performance**, choose Automatic, Full effects, or Reduced effects. Automatic uses the browser's coarse CPU/memory hints when available; Reduced effects removes acrylic blur and pauses wallpaper effects. Wallpaper animations also pause in background tabs and while the desktop is locked. Layout saves are combined during resizing. On small screens, app windows fill the workspace, File Explorer uses a horizontal location bar, and input controls accommodate the reduced viewport when the keyboard opens.
+
 Drag a window to the left or right edge to snap it into half the workspace, or to the top to maximize it. This works with a mouse or touch. Hover over a running taskbar icon to preview its window.
 
 File Explorer supports browser-local text files (`.txt`, `.md`, `.json`, `.csv`, `.log`). Use **Import text** to select files, **New folder** to organize them, **Download** to save a copy to your device, and Recycle Bin to restore deleted files. Notepad edits the selected file automatically. Imports are limited to 256 KB per file, 60 active files, and 1.5 million characters total. Browser storage has its own quota, so use **Download** for an independent copy of anything important. Local files never sync between devices or between different site URLs.
 
-In **Settings → Workspace backup**, choose **Download backup** to export files, folders, Recycle Bin, to-dos, appearance, and open-window layout as JSON. **Import backup** validates the file and asks before replacing the browser's current workspace. This lets you move data between devices or site URLs. Copilot API credentials and chat history are never included in backups.
+In **Settings → Workspace backup**, choose **Download backup** to export files, folders, Recycle Bin, to-dos, appearance, desktop shortcut positions, and open-window layout as JSON. **Import backup** validates the file and asks before replacing the browser's current workspace. This lets you move data between devices or site URLs. Copilot API credentials and chat history are never included in backups.
 
 The desktop restores open windows, their sizes and positions, minimized/maximized state, and active window after sign-in or page reload. Keyboard shortcuts (when the browser lets the page receive them):
 
@@ -41,15 +47,17 @@ The included [deployment workflow](.github/workflows/deploy.yml) publishes the s
 
 You can also upload `index.html` to any static website host. Serve it as the site's index document; no server runtime, environment variables, or package installation is required.
 
-Hosted HTTPS versions can be installed as a PWA through the browser's install menu (or the **Install app** button in Settings when offered). After the first online visit, the app shell is cached for offline use. PWA installation uses `manifest.webmanifest`, `sw.js`, and the `pwa/` icons; double-clicking the standalone `index.html` does not require them.
+Hosted HTTPS versions can be installed as a PWA through the browser's install menu (or the **Install app** button in Settings when offered). After the first online visit, the app shell is cached for offline use. When a new worker is ready, **Save and update** saves local files and window layout before activating it and reloading. Dismissing the notice keeps the current page running; an update in another tab does not reload your editor. PWA installation uses `manifest.webmanifest`, `sw.js`, and the `pwa/` icons; double-clicking the standalone `index.html` does not require them.
 
 ## Cloudflare deployment
 
 The same `index.html` is deployed at [`https://sbti.christmas/windows12`](https://sbti.christmas/windows12) through the existing Cloudflare Worker named `windows-12`. The Cloudflare routes are `sbti.christmas/windows12` and `sbti.christmas/windows12/*`; the rest of `sbti.christmas` remains on the `sbti` Pages project.
 
+The checked-in [`wrangler.jsonc`](wrangler.jsonc) declares the static asset directory, the existing production routes, and an empty `previews` block. Cloudflare uses `npx wrangler deploy` for `main` and `npx wrangler preview` for PR branches. The `previews` block enables that command; branch previews use the branch assets without changing the production routes. `.assetsignore` excludes repository metadata, configuration, and development tools from uploaded assets.
+
 The repository includes [`windows12/index.html`](windows12/index.html) as an exact copy of the original [`index.html`](index.html), together with matching PWA assets under `windows12/`. Cloudflare's connected build deploys the repository as static assets, so both `/windows12` (redirecting to `/windows12/`) and `/windows12/` serve the original app. No separate client or backend is deployed. The optional Copilot API connection still requires a separately configured compatible endpoint, as described below.
 
-Pushes to `main` trigger an automatic Cloudflare Worker deployment. When changing the app, update `index.html` and mirror its PWA assets into `windows12/` in the same commit. After the build completes, verify [`https://sbti.christmas/windows12/`](https://sbti.christmas/windows12/) and keep the Worker route patterns in place.
+Pushes to `main` trigger an automatic Cloudflare Worker deployment. After changing `index.html`, the service worker, or PWA assets, run `python3 scripts/site.py` to update the content-based cache version and synchronize `windows12/`. Commit the generated files together. After the build completes, verify [`https://sbti.christmas/windows12/`](https://sbti.christmas/windows12/) and keep the Worker route patterns in place.
 
 The Cloudflare site and the GitHub Pages site have separate browser storage because they use different origins. Files and preferences created at one URL do not automatically appear at the other.
 
@@ -138,3 +146,19 @@ Text content arrays are also supported. Replies render as plain text; HTML is ne
 - External links in the browser demo require an internet connection.
 
 The source is organized into commented CSS and JavaScript sections inside `index.html`. Reduced-motion preferences are respected.
+
+## Development and validation
+
+The webpage has no runtime dependencies. Python, Node.js, and Playwright below are **development tools only**; visitors can still double-click `index.html` without installing anything.
+
+```sh
+python3 scripts/site.py
+python3 scripts/site.py --check
+npm ci --prefix tests
+npm exec --prefix tests -- playwright install chromium
+npm test --prefix tests
+```
+
+The sync script verifies inline JavaScript syntax, catches duplicate static HTML IDs, derives the worker cache version from published content, and mirrors deployment assets. Cloudflare asset uploads exclude development tools using `.assetsignore`. `--check` rejects stale copies. `--output /absolute/path/outside/repository` stages only the public website assets.
+
+Browser checks cover wrong/correct sign-in, desktop selection and group movement, search and keyboard selection, file persistence, window controls, backup export, combined layout saves, mobile touch interaction, PWA update activation, offline reload, and standalone HTML. Pull requests run these checks. GitHub Pages runs the same checks before deployment and compares the published homepage, worker, manifest, and icons with the commit afterward; CDN propagation is retried.
