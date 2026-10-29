@@ -1,6 +1,6 @@
 {
   "name": "windows-12-concept-checks",
   "private": true,
-  "scripts": { "test": "node tests/smoke.cjs" },
+  "scripts": { "test": "node smoke.cjs" },
   "devDependencies": { "playwright": "1.57.0" }
 }

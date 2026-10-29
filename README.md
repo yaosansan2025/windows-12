@@ -152,9 +152,9 @@ The webpage has no runtime dependencies. Python, Node.js, and Playwright below a
 ```sh
 python3 scripts/site.py
 python3 scripts/site.py --check
-npm ci
-npx playwright install chromium
-npm test
+npm ci --prefix tests
+npm exec --prefix tests -- playwright install chromium
+npm test --prefix tests
 ```
 
 The sync script verifies inline JavaScript syntax, catches duplicate static HTML IDs, derives the worker cache version from published content, and mirrors deployment assets. Cloudflare asset uploads exclude development tools using `.assetsignore`. `--check` rejects stale copies. `--output /absolute/path/outside/repository` stages only the public website assets.

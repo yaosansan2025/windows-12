@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,11 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+          cache-dependency-path: tests/package-lock.json
       - run: npm ci
+        working-directory: tests
       - run: python3 scripts/site.py --check
       - run: npx playwright install --with-deps chromium
+        working-directory: tests
       - run: npm test
+        working-directory: tests
