@@ -240,6 +240,45 @@
     #window-preview .preview-content { margin-top:11px;min-height:72px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--muted);font-size:10px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical; }
     #window-preview small { display:block;margin-top:8px;font-size:9px; }
     @media(max-width:560px) { #window-preview { display:none!important; } }
+    /* Desktop interaction, unified search, and explicit update controls. */
+    .desktop-icons { inset:20px 12px calc(var(--workspace-bottom) + 12px); width:auto; height:auto; display:block; pointer-events:none; z-index:2; }
+    .desktop-icon { position:absolute; width:76px; height:84px; min-height:0; margin:0; pointer-events:auto; touch-action:none; transition:background .2s,border-color .2s; }
+    .desktop-icon.dragging { z-index:5; transition:none; opacity:.8; }
+    #desktop-selection { position:absolute; z-index:3; pointer-events:none; border:1px solid #8db8ff; background:#75b8ff25; border-radius:2px; }
+    .search-result { display:flex; align-items:center; gap:12px; padding:12px; min-height:60px; width:100%; border-radius:10px; text-align:left; }
+    .search-result[aria-selected="true"],.search-result:hover { background:var(--hover); outline:1px solid var(--border); }
+    .search-result>span:nth-child(2) { flex:1; min-width:0; }
+    .search-result strong,.search-result small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .search-result strong { font-size:12px; font-weight:500; }
+    .search-result small { font-size:10px; color:var(--muted); margin-top:4px; }
+    #search-results { max-height:340px; overflow:auto; padding:2px; margin-bottom:16px; }
+    #pwa-update-banner { position:absolute; top:16px; right:16px; z-index:5100; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; max-width:calc(100% - 32px); font-size:12px; }
+    #pwa-update-banner .secondary { white-space:nowrap; }
+    body.low-effects .glass { backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--panel-solid); }
+    body.low-effects .particle { display:none; }
+    body.low-effects #wallpaper *,body.background-paused #wallpaper *,body.session-locked #wallpaper * { animation-play-state:paused!important; }
+    body.low-effects .ambient { filter:none; opacity:.15; }
+    @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) { .glass { background:var(--panel-solid); } }
+    @media(max-width:560px) {
+      #desktop,#session-shell { height:var(--visual-height,100dvh); bottom:auto; }
+      .desktop-icons { inset:20px 8px 110px; }
+      .desktop-icon { width:68px; height:80px; }
+      #window-layer { bottom:96px; }
+      .window,.window.maximized { left:8px!important; top:8px!important; width:calc(100% - 16px)!important; height:calc(100% - 16px)!important; max-width:none; min-height:0; background:var(--panel-solid); }
+      .window-titlebar { min-height:48px; cursor:default; }
+      .window-actions button { width:44px; height:40px; }
+      .window-actions button[data-window-action="maximize"],.snap-picker { display:none; }
+      .files-layout { flex-direction:column; }
+      .files-sidebar { display:flex; width:100%; overflow-x:auto; flex-shrink:0; padding:6px; border-right:0; border-bottom:1px solid var(--border); }
+      .files-sidebar button { width:auto; flex-shrink:0; white-space:nowrap; min-height:40px; }
+      .files-toolbar button,.virtual-file button,.virtual-file select { min-height:40px; }
+      .files-main { flex:1; min-height:0; overflow:auto; }
+      input,textarea,select,#copilot-connection-form input,#copilot-connection-form select { font-size:16px!important; }
+      #copilot-panel { top:8px; right:8px; bottom:84px; width:calc(100% - 16px); }
+      #pwa-update-banner { flex-wrap:wrap; gap:8px; }
+      .search-result { min-height:64px; }
+    }
+
   </style>
 </head>
 <body class="session-locked">
@@ -322,11 +361,11 @@
       <button class="desktop-icon" data-desktop-app="notepad" aria-label="Notepad, double-click to open"><span class="app-icon notepad"><svg class="icon"><use href="#i-notepad"/></svg></span><span>Notepad</span></button>
     </nav>
     <button id="desktop-weather" data-action="widgets" aria-label="Open widgets and weather"><span class="sun-art" aria-hidden="true"></span><span><strong>18°C &nbsp; Partly cloudy</strong><small>Vancouver · Weather preview</small></span></button>
-    <section id="window-layer" aria-label="Open application windows"><div id="snap-preview" hidden aria-hidden="true"></div></section>
+    <div id="desktop-selection" hidden aria-hidden="true"></div><div id="pwa-update-banner" class="glass" role="status" hidden><span>A new version is ready.</span><button class="secondary" id="pwa-update">Save and update</button><button class="icon-button" id="pwa-update-dismiss" aria-label="Dismiss update notification">×</button></div><section id="window-layer" aria-label="Open application windows"><div id="snap-preview" hidden aria-hidden="true"></div></section>
     <nav id="taskbar" class="glass" aria-label="Taskbar"></nav>
     <div id="window-preview" class="glass" role="tooltip" hidden></div>
     <div class="clock-tray"><button id="clock-button" class="clock-button" data-panel="calendar-panel" aria-expanded="false" aria-controls="calendar-panel" aria-label="Open calendar"><span id="tray-time"></span><small id="tray-date"></small></button><button class="icon-button notification-button" data-panel="notification-panel" aria-expanded="false" aria-controls="notification-panel" aria-label="Open notifications"><svg class="icon" style="width:17px"><use href="#i-bell"/></svg></button></div>
-    <section id="start-menu" class="panel bottom-panel glass" aria-label="Start menu" inert><div class="row between" style="margin-bottom:20px"><div><h2 style="font-size:20px">Start</h2></div><span class="avatar">U</span></div><label class="start-search"><svg class="icon"><use href="#i-search"/></svg><input id="start-search" type="search" placeholder="Search apps and settings" aria-label="Search apps" autocomplete="off"><span class="badge">⌕</span></label><div class="row between start-heading"><h3>Pinned</h3></div><div id="app-grid" class="app-grid"></div><section class="recommended"><div class="row between start-heading"><h3>Suggested</h3></div><div class="recommend-grid"><button class="recommend-item" data-app="notepad"><svg class="icon"><use href="#i-notepad"/></svg><span><strong>Notepad</strong><small>Open your notes</small></span></button><button class="recommend-item" data-app="photos"><svg class="icon"><use href="#i-palette"/></svg><span><strong>Photos</strong><small>Choose a wallpaper</small></span></button></div></section><footer class="start-bottom"><button class="row" data-action="lock"><span class="avatar">U</span>User <svg class="icon" style="width:12px;color:var(--muted)"><use href="#i-right"/></svg></button><div class="power-options"><button class="icon-button" data-action="lock" aria-label="Sleep"><svg class="icon" style="width:17px"><use href="#i-moon"/></svg></button><button class="icon-button" data-action="restart" aria-label="Restart"><svg class="icon" style="width:17px"><use href="#i-refresh"/></svg></button><button class="icon-button" data-action="signout" aria-label="Sign out"><svg class="icon" style="width:17px"><use href="#i-power"/></svg></button></div></footer></section>
+    <section id="start-menu" class="panel bottom-panel glass" aria-label="Start menu" inert><div class="row between" style="margin-bottom:20px"><div><h2 style="font-size:20px">Start</h2></div><span class="avatar">U</span></div><label class="start-search"><svg class="icon"><use href="#i-search"/></svg><input id="start-search" type="search" placeholder="Search apps, files and settings" aria-label="Search apps, files and settings" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" autocomplete="off"><span class="badge">⌕</span></label><div class="row between start-heading"><h3>Pinned</h3></div><div id="app-grid" class="app-grid"></div><div id="search-results" role="listbox" aria-label="Search results" hidden></div><p id="search-status" class="sr-only" role="status"></p><section class="recommended"><div class="row between start-heading"><h3>Suggested</h3></div><div class="recommend-grid"><button class="recommend-item" data-app="notepad"><svg class="icon"><use href="#i-notepad"/></svg><span><strong>Notepad</strong><small>Open your notes</small></span></button><button class="recommend-item" data-app="photos"><svg class="icon"><use href="#i-palette"/></svg><span><strong>Photos</strong><small>Choose a wallpaper</small></span></button></div></section><footer class="start-bottom"><button class="row" data-action="lock"><span class="avatar">U</span>User <svg class="icon" style="width:12px;color:var(--muted)"><use href="#i-right"/></svg></button><div class="power-options"><button class="icon-button" data-action="lock" aria-label="Sleep"><svg class="icon" style="width:17px"><use href="#i-moon"/></svg></button><button class="icon-button" data-action="restart" aria-label="Restart"><svg class="icon" style="width:17px"><use href="#i-refresh"/></svg></button><button class="icon-button" data-action="signout" aria-label="Sign out"><svg class="icon" style="width:17px"><use href="#i-power"/></svg></button></div></footer></section>
     <section id="calendar-panel" class="panel bottom-panel glass" aria-label="Calendar" inert><div class="row between"><p class="calendar-current" id="calendar-current"></p><button class="icon-button" data-close-panel aria-label="Close calendar"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="row between calendar-nav"><strong id="calendar-month"></strong><div class="row" style="gap:3px"><button class="icon-button" id="calendar-prev" aria-label="Previous month"><svg class="icon"><use href="#i-left"/></svg></button><button class="text-button" id="calendar-today">Today</button><button class="icon-button" id="calendar-next" aria-label="Next month"><svg class="icon"><use href="#i-right"/></svg></button></div></div><div id="calendar-grid" class="calendar-grid"></div><div class="calendar-agenda"><strong id="agenda-date">Today</strong><span>No events scheduled.</span></div></section>
     <section id="quick-panel" class="panel bottom-panel glass" aria-label="Quick settings" inert><div class="panel-title"><h3>Quick settings</h3></div><div class="quick-tiles"><button class="quick-tile" data-quick="Wi-Fi" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-wifi"/></svg></span>Wi-Fi</button><button class="quick-tile" data-quick="Bluetooth" aria-pressed="true"><span class="tile-icon"><svg class="icon"><use href="#i-bluetooth"/></svg></span>Bluetooth</button><button class="quick-tile" data-quick="Focus" aria-pressed="false"><span class="tile-icon"><svg class="icon"><use href="#i-moon"/></svg></span>Focus</button></div><label class="volume-row"><svg class="icon"><use href="#i-volume"/></svg><input id="volume" type="range" min="0" max="100" value="65" aria-label="Demo volume"><span id="volume-value" style="font-size:11px;width:24px">65</span></label><div class="setting-row"><span><strong>Focus session</strong><small id="focus-time">25:00</small></span><button id="focus-toggle" class="icon-button" aria-label="Start focus timer"><svg class="icon"><use href="#i-play"/></svg></button></div><div class="setting-row"><span><strong>Spatial audio</strong><small>Use headphones for best results</small></span><button class="toggle" id="spatial-toggle" role="switch" aria-checked="true" aria-label="Spatial audio"></button></div><div class="row between quick-footer"><span id="quick-battery" class="battery-reading" hidden></span><button class="icon-button" data-app="settings" aria-label="Open settings"><svg class="icon" style="width:17px"><use href="#i-settings"/></svg></button></div></section>
     <section id="widgets-panel" class="panel glass" aria-label="Widgets" inert><div class="panel-title"><div><h2>Widgets</h2></div><button class="icon-button" data-close-panel aria-label="Close widgets"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="widget-grid"><article class="widget-card"><h3>Vancouver</h3><div class="row between" style="margin:20px 0"><span class="temperature">18°</span><span class="sun-art" style="width:28px;height:28px"></span></div><p>Partly cloudy<br>H: 20° &nbsp; L: 14°</p></article><button class="widget-card" data-action="calendar" style="text-align:left"><h3 id="widget-weekday"></h3><div class="mini-date" id="widget-day"></div><p id="widget-month"></p></button><article class="widget-card full"><div class="row between"><h3 style="margin:0">To do</h3><span id="todo-count" class="badge"></span></div><div id="todo-list" class="todo-list"></div><form id="todo-form" class="todo-form"><input id="todo-input" maxlength="140" aria-label="New to-do" placeholder="Add a task" required><button class="icon-button" type="submit" aria-label="Add to-do"><svg class="icon"><use href="#i-plus"/></svg></button></form></article><article class="widget-card full"><h3>News</h3><div class="news-item"><small>OFFLINE PREVIEW</small><p>Headlines will appear here when a news source is connected.</p></div><div class="news-item"><small>WIDGETS</small><p>Keep your tasks and calendar in view.</p></div></article></div><p class="panel-footnote">Weather is sample data. News is unavailable offline.</p></section>
@@ -449,7 +488,8 @@
       theme: storedPreferences?.theme === 'light' ? 'light' : 'dark',
       wallpaper: ['bloom','aurora','dusk'].includes(storedPreferences?.wallpaper) ? storedPreferences.wallpaper : 'bloom',
       taskbar: storedPreferences?.taskbar === 'left' ? 'left' : 'center',
-      motion: storedPreferences?.motion !== false
+      motion: storedPreferences?.motion !== false,
+      performance: ['auto','full','low'].includes(storedPreferences?.performance) ? storedPreferences.performance : 'auto'
     };
     const introNote = 'Notes\n\nThis document saves automatically in your browser.\n\nUse Save a copy to download a text file.';
     let note = Storage.read('note', introNote);
@@ -516,6 +556,7 @@
       open(id) {
         if (Session.phase !== 'desktop') return;
         Panels.closeTransient();
+        if (Apps[id]) Search.record('app', id);
         if (this.items.has(id)) { this.restore(id); return; }
         const app = Apps[id];
         if (!app) return;
@@ -552,7 +593,7 @@
         maximize.addEventListener('contextmenu', event => { event.preventDefault(); $('.snap-picker', element).classList.toggle('open'); });
         this.enableDrag(id);
         if (window.ResizeObserver) {
-          item.resizeObserver = new ResizeObserver(() => this.saveWorkspace());
+          item.resizeObserver = new ResizeObserver(() => this.queueSave());
           item.resizeObserver.observe(element);
         }
         app.mount?.(element);
@@ -689,7 +730,7 @@
         const item = this.items.get(id), element = item.element, bar = $('.window-titlebar', element);
         bar.addEventListener('dblclick', event => { if (!event.target.closest('button')) this.maximize(id); });
         bar.addEventListener('pointerdown', event => {
-          if (event.button !== 0 || event.target.closest('button')) return;
+          if (event.button !== 0 || event.target.closest('button') || innerWidth <= 560) return;
           event.preventDefault();
           this.focus(id);
           const startX = event.clientX, startY = event.clientY;
@@ -762,7 +803,12 @@
         const next = ids[(index + (reverse ? -1 : 1) + ids.length) % ids.length];
         this.restore(next);
       },
+      queueSave() {
+        clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(() => this.saveWorkspace(), 180);
+      },
       saveWorkspace() {
+        clearTimeout(this.saveTimer);
         if (this.restoring) return;
         const windows = [...this.items].map(([id,item]) => {
           const element = item.element;
@@ -812,6 +858,145 @@
       }
     };
 
+    // Desktop positions use grid coordinates, keeping icons reachable after resize.
+    const Desktop = {
+      selected:new Set(), positions:{}, rendered:new Map(), suppressUntil:0,
+      buttons() { return $$('.desktop-icon'); },
+      select(ids) {
+        this.selected=new Set(ids);
+        this.buttons().forEach(button=>{
+          const selected=this.selected.has(button.dataset.desktopApp);
+          button.classList.toggle('selected',selected);
+          button.setAttribute('aria-pressed',String(selected));
+        });
+      },
+      grid() {
+        const area=$('.desktop-icons');
+        const x=innerWidth<=560?76:84,y=90;
+        return {x,y,cols:Math.max(1,Math.floor(area.clientWidth/x)),rows:Math.max(1,Math.floor(area.clientHeight/y))};
+      },
+      layout() {
+        if(this.cancelGesture)this.cancelGesture();
+        const grid=this.grid(),occupied=new Set();
+        this.rendered.clear();
+        this.buttons().forEach((button,index)=>{
+          const stored=this.positions[button.dataset.desktopApp];
+          let col=clamp(Number.isInteger(stored?.col)?stored.col:0,0,grid.cols-1);
+          let row=clamp(Number.isInteger(stored?.row)?stored.row:index,0,grid.rows-1);
+          if(occupied.has(`${col},${row}`)){
+            for(let slot=0;slot<grid.cols*grid.rows;slot++){
+              const c=Math.floor(slot/grid.rows),r=slot%grid.rows;
+              if(!occupied.has(`${c},${r}`)){col=c;row=r;break;}
+            }
+          }
+          occupied.add(`${col},${row}`);
+          this.rendered.set(button.dataset.desktopApp,{col,row});
+          Object.assign(button.style,{left:`${col*grid.x}px`,top:`${row*grid.y}px`,transform:''});
+        });
+      },
+      init() {
+        const saved=Storage.read('desktopIcons',{});
+        if(saved&&typeof saved==='object'&&!Array.isArray(saved))this.positions=saved;
+        this.layout();this.select([]);
+        this.buttons().forEach(button=>{
+          const title=button.querySelector('span:last-child').textContent;
+          button.setAttribute('aria-label',`${title}, ${matchMedia('(pointer:coarse)').matches?'tap':'double-click'} to open`);
+          button.addEventListener('pointerdown',event=>this.drag(event,button));
+          button.addEventListener('dblclick',()=>{if(Date.now()>this.suppressUntil)launch(button.dataset.desktopApp);});
+          button.addEventListener('keydown',event=>{
+            if(event.key==='Enter'){event.preventDefault();launch(button.dataset.desktopApp);}
+            if(event.key==='Escape')this.select([]);
+            if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='a'){event.preventDefault();this.select(this.buttons().map(item=>item.dataset.desktopApp));}
+            if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)){
+              event.preventDefault();const buttons=this.buttons(),index=buttons.indexOf(button);
+              const next=buttons[(index+(event.key==='ArrowUp'||event.key==='ArrowLeft'?-1:1)+buttons.length)%buttons.length];
+              next.focus();if(!event.shiftKey)this.select([next.dataset.desktopApp]);else this.select([...this.selected,next.dataset.desktopApp]);
+            }
+          });
+        });
+        $('#desktop').addEventListener('pointerdown',event=>this.box(event));
+        window.addEventListener('blur',()=>this.cancelGesture?.());
+      },
+      drag(event,button) {
+        if(event.button!==0||Session.phase!=='desktop')return;
+        const id=button.dataset.desktopApp,modified=event.ctrlKey||event.metaKey||event.shiftKey;
+        if(modified){const ids=new Set(this.selected);ids.has(id)?ids.delete(id):ids.add(id);this.select(ids);}
+        else if(!this.selected.has(id))this.select([id]);
+        if(!this.selected.has(id))return;
+        const startX=event.clientX,startY=event.clientY,grid=this.grid();
+        const original=new Map([...this.rendered].filter(([key])=>this.selected.has(key)));
+        const group=this.buttons().filter(item=>this.selected.has(item.dataset.desktopApp));
+        let dragging=false,dx=0,dy=0;
+        button.setPointerCapture(event.pointerId);
+        const move=e=>{
+          if(event.pointerType==='touch')return;
+          if(!dragging&&Math.hypot(e.clientX-startX,e.clientY-startY)<5)return;
+          dragging=true;
+          const points=[...original.values()];
+          dx=clamp(e.clientX-startX,-Math.min(...points.map(p=>p.col))*grid.x,(grid.cols-1-Math.max(...points.map(p=>p.col)))*grid.x);
+          dy=clamp(e.clientY-startY,-Math.min(...points.map(p=>p.row))*grid.y,(grid.rows-1-Math.max(...points.map(p=>p.row)))*grid.y);
+          group.forEach(item=>{item.style.transform=`translate(${dx}px,${dy}px)`;item.classList.add('dragging');});
+        };
+        const finish=e=>{
+          button.removeEventListener('pointermove',move);button.removeEventListener('pointerup',finish);button.removeEventListener('pointercancel',finish);
+          if(button.hasPointerCapture(event.pointerId))button.releasePointerCapture(event.pointerId);
+          this.cancelGesture=null;
+          group.forEach(item=>{item.classList.remove('dragging');item.style.transform='';});
+          if(dragging){
+            this.suppressUntil=Date.now()+400;
+            if(e?.type==='pointerup'){
+              const mx=Math.round(dx/grid.x),my=Math.round(dy/grid.y);
+              const occupied=new Set([...this.rendered].filter(([key])=>!original.has(key)).map(([,p])=>`${p.col},${p.row}`));
+              if([...original.values()].every(p=>!occupied.has(`${p.col+mx},${p.row+my}`))){
+                for(const [key,p] of original)this.positions[key]={col:p.col+mx,row:p.row+my};
+                Storage.write('desktopIcons',this.positions);
+              }
+            }
+            this.layout();
+          }else if(e?.type==='pointerup'&&!modified){
+            this.select([id]);
+            if(event.pointerType==='touch'&&Math.hypot(e.clientX-startX,e.clientY-startY)<12)launch(id);
+          }
+        };
+        this.cancelGesture=()=>finish(null);
+        button.addEventListener('pointermove',move);button.addEventListener('pointerup',finish);button.addEventListener('pointercancel',finish);
+      },
+      box(event) {
+        if(event.button!==0||event.pointerType==='touch'||Session.phase!=='desktop'||event.target.closest('button,a,input,textarea,select,.window,.panel,#taskbar,#pwa-update-banner'))return;
+        const root=$('#desktop'),box=$('#desktop-selection'),base=event.ctrlKey||event.metaKey||event.shiftKey?[...this.selected]:[];
+        const sx=event.clientX,sy=event.clientY;this.select(base);root.setPointerCapture(event.pointerId);
+        const move=e=>{
+          const left=Math.min(sx,e.clientX),top=Math.min(sy,e.clientY),right=Math.max(sx,e.clientX),bottom=Math.max(sy,e.clientY);
+          if(Math.hypot(right-left,bottom-top)<5)return;
+          Object.assign(box.style,{left:`${left}px`,top:`${top}px`,width:`${right-left}px`,height:`${bottom-top}px`});box.hidden=false;
+          const hits=this.buttons().filter(button=>{const r=button.getBoundingClientRect();return r.left<right&&r.right>left&&r.top<bottom&&r.bottom>top;});
+          this.select([...base,...hits.map(button=>button.dataset.desktopApp)]);
+        };
+        const finish=()=>{
+          box.hidden=true;root.removeEventListener('pointermove',move);root.removeEventListener('pointerup',finish);root.removeEventListener('pointercancel',finish);
+          if(root.hasPointerCapture(event.pointerId))root.releasePointerCapture(event.pointerId);
+          this.cancelGesture=null;
+        };
+        this.cancelGesture=finish;root.addEventListener('pointermove',move);root.addEventListener('pointerup',finish);root.addEventListener('pointercancel',finish);
+      }
+    };
+    // Automatic mode uses coarse device hints; the user can always override it.
+    const Performance = {
+      apply() {
+        const modest=(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||(navigator.deviceMemory&&navigator.deviceMemory<=4);
+        document.body.classList.toggle('low-effects',preferences.performance==='low'||(preferences.performance==='auto'&&!!modest));
+        document.body.classList.toggle('background-paused',document.hidden);
+      },
+      init() {
+        document.addEventListener('visibilitychange',()=>{this.apply();if(document.hidden)Windows.saveWorkspace();});
+        window.addEventListener('pagehide',()=>Windows.saveWorkspace());
+        const viewport=()=>{
+          if(!window.visualViewport||visualViewport.scale===1)document.documentElement.style.setProperty('--visual-height',`${window.visualViewport?.height||innerHeight}px`);
+        };
+        window.visualViewport?.addEventListener('resize',viewport);viewport();this.apply();
+      }
+    };
+
     // 05. Preferences affect the desktop immediately and survive reloads.
     const Settings = {
       apply() {
@@ -822,9 +1007,12 @@
         document.body.classList.toggle('wallpaper-dusk', preferences.wallpaper === 'dusk');
         $('meta[name="theme-color"]').content = preferences.theme === 'light' ? '#e2e7fa' : '#080b19';
         Storage.write('preferences', preferences);
+        Performance.apply();
         this.sync();
       },
       sync() {
+        const performanceMode = $('#performance-mode');
+        if (performanceMode) performanceMode.value = preferences.performance;
         const themeToggle = $('#theme-toggle');
         if (themeToggle) themeToggle.setAttribute('aria-checked', String(preferences.theme === 'dark'));
         const motionToggle = $('#motion-toggle');
@@ -834,10 +1022,11 @@
         $$('[data-wallpaper]').forEach(button => button.setAttribute('aria-pressed', String(preferences.wallpaper === button.dataset.wallpaper)));
       },
       render() {
-        return `<div class="app-heading"><p class="eyebrow" style="margin:0 0 8px">Personalization</p><h2>Open Settings.</h2><p>Choose your wallpaper and appearance.</p></div><section class="settings-section"><h3>Background</h3><div class="wallpaper-options"><button class="wallpaper-option" data-wallpaper="bloom" aria-label="Bloom wallpaper"><span>Bloom</span></button><button class="wallpaper-option" data-wallpaper="aurora" aria-label="Aurora wallpaper"><span>Aurora</span></button><button class="wallpaper-option" data-wallpaper="dusk" aria-label="Dusk wallpaper"><span>Dusk</span></button></div></section><section class="settings-section"><h3>Theme and taskbar</h3><div class="setting-row"><span><strong>Dark appearance</strong><small>Use a dark color theme.</small></span><button class="toggle" id="theme-toggle" role="switch" aria-label="Dark appearance"></button></div><div class="setting-row"><span><strong>Taskbar position</strong><small>Choose taskbar alignment.</small></span><select id="taskbar-position" aria-label="Taskbar position"><option value="center">Centered</option><option value="left">Left aligned</option></select></div><div class="setting-row"><span><strong>Animations</strong><small>Show wallpaper motion and transitions.</small></span><button class="toggle" id="motion-toggle" role="switch" aria-label="Enable animations"></button></div></section><section class="settings-section" id="display-settings"><h3>Display</h3><div class="setting-row"><span><strong>Adaptive workspace</strong><small>Windows adjust to your browser size.</small></span><span class="badge" id="display-size">${innerWidth} × ${innerHeight}</span></div></section>`;
+        return `<div class="app-heading"><p class="eyebrow" style="margin:0 0 8px">Personalization</p><h2>Open Settings.</h2><p>Choose your wallpaper and appearance.</p></div><section class="settings-section" id="background-settings"><h3>Background</h3><div class="wallpaper-options"><button class="wallpaper-option" data-wallpaper="bloom" aria-label="Bloom wallpaper"><span>Bloom</span></button><button class="wallpaper-option" data-wallpaper="aurora" aria-label="Aurora wallpaper"><span>Aurora</span></button><button class="wallpaper-option" data-wallpaper="dusk" aria-label="Dusk wallpaper"><span>Dusk</span></button></div></section><section class="settings-section" id="appearance-settings"><h3>Theme and taskbar</h3><div class="setting-row"><span><strong>Dark appearance</strong><small>Use a dark color theme.</small></span><button class="toggle" id="theme-toggle" role="switch" aria-label="Dark appearance"></button></div><div class="setting-row"><span><strong>Taskbar position</strong><small>Choose taskbar alignment.</small></span><select id="taskbar-position" aria-label="Taskbar position"><option value="center">Centered</option><option value="left">Left aligned</option></select></div><div class="setting-row"><span><strong>Animations</strong><small>Show wallpaper motion and transitions.</small></span><button class="toggle" id="motion-toggle" role="switch" aria-label="Enable animations"></button></div></section><section class="settings-section" id="performance-settings"><h3>Performance</h3><div class="setting-row"><span><strong>Visual effects</strong><small>Reduce blur and wallpaper effects to save resources.</small></span><select id="performance-mode" aria-label="Visual effects"><option value="auto">Automatic</option><option value="full">Full effects</option><option value="low">Reduced effects</option></select></div></section><section class="settings-section" id="display-settings"><h3>Display</h3><div class="setting-row"><span><strong>Adaptive workspace</strong><small>Windows adjust to your browser size.</small></span><span class="badge" id="display-size">${innerWidth} × ${innerHeight}</span></div></section>`;
       },
       mount(element) {
         this.sync();
+        $('#performance-mode', element).addEventListener('change', event => { preferences.performance = event.target.value; this.apply(); });
         $('#theme-toggle', element).addEventListener('click', () => { preferences.theme = preferences.theme === 'dark' ? 'light' : 'dark'; this.apply(); });
         $('#motion-toggle', element).addEventListener('click', () => { preferences.motion = !preferences.motion; this.apply(); });
         $('#taskbar-position', element).addEventListener('change', event => { preferences.taskbar = event.target.value; this.apply(); });
@@ -896,7 +1085,7 @@
       openFile(id) {
         if(!this.items.some(file=>file.id===id))return;
         this.activeId=id;Storage.write('activeFile',id);
-        Windows.open('notepad');this.syncEditor();
+        Windows.open('notepad');this.syncEditor();Search.record('file',id);
       },
       syncEditor() {
         const element=Windows.items.get('notepad')?.element;
@@ -1026,7 +1215,7 @@
     };
     // Portable backup includes browser-local data, never Copilot API credentials.
     const WorkspaceBackup = {
-      keys:['preferences','folders','files','trash','activeFile','todos','workspace'],
+      keys:['preferences','folders','files','trash','activeFile','todos','workspace','desktopIcons'],
       render() {
         return `<section class="settings-section" id="backup-settings"><h3>Workspace backup</h3><p class="muted" style="font-size:11px;line-height:1.6;margin-bottom:12px">Export your text files, folders, to-do list, appearance, and window layout. Import replaces this browser's workspace.</p><div class="row" style="flex-wrap:wrap"><button class="secondary" id="backup-export" type="button">Download backup</button><button class="secondary" id="backup-import" type="button">Import backup</button><input id="backup-picker" type="file" accept=".json,application/json" hidden aria-label="Choose Windows 12 backup"></div><p id="backup-status" class="muted" role="status" style="font-size:10px;line-height:1.5;margin-top:10px"></p></section>`;
       },
@@ -1042,7 +1231,7 @@
       status(message) {const target=$('#backup-status');if(target)target.textContent=message;},
       export() {
         const workspace=Windows.saveWorkspace() || Storage.read('workspace',{windows:[],active:null});
-        const data={preferences:{...preferences},folders:Files.folders.slice(3),files:Files.items,trash:Files.trash,activeFile:Files.activeId,todos,workspace};
+        const data={preferences:{...preferences},folders:Files.folders.slice(3),files:Files.items,trash:Files.trash,activeFile:Files.activeId,todos,workspace,desktopIcons:Desktop.positions};
         const backup={format:'windows-12-workspace',version:1,createdAt:new Date().toISOString(),data};
         const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}));
         const link=document.createElement('a');
@@ -1073,7 +1262,7 @@
         if(totalChars>2000000)throw new Error('Backup is too large for this workspace.');
         if(!Array.isArray(data.todos)||data.todos.length>100||data.todos.some(todo=>!todo||typeof todo.text!=='string'||todo.text.length>140||typeof todo.done!=='boolean'))throw new Error('Backup to-do list is invalid.');
         const raw=data.preferences||{};
-        const importedPreferences={theme:raw.theme==='light'?'light':'dark',wallpaper:['bloom','aurora','dusk'].includes(raw.wallpaper)?raw.wallpaper:'bloom',taskbar:raw.taskbar==='left'?'left':'center',motion:raw.motion!==false};
+        const importedPreferences={theme:raw.theme==='light'?'light':'dark',wallpaper:['bloom','aurora','dusk'].includes(raw.wallpaper)?raw.wallpaper:'bloom',taskbar:raw.taskbar==='left'?'left':'center',motion:raw.motion!==false,performance:['auto','full','low'].includes(raw.performance)?raw.performance:'auto'};
         const layout=data.workspace;
         if(!layout||!Array.isArray(layout.windows)||layout.windows.length>20)throw new Error('Backup window layout is invalid.');
         const seenWindows=new Set();
@@ -1082,7 +1271,12 @@
           seenWindows.add(entry.id);
           return {id:entry.id,left:entry.left,top:entry.top,width:entry.width,height:entry.height,z:entry.z,maximized:!!entry.maximized,minimized:!!entry.minimized};
         });
-        return {preferences:importedPreferences,folders:data.folders,files,trash,activeFile:files.some(file=>file.id===data.activeFile)?data.activeFile:null,todos:data.todos.map(todo=>({text:todo.text,done:todo.done})),workspace:{windows,active:seenWindows.has(layout.active)?layout.active:null}};
+        const desktopIcons={};
+        for(const button of Desktop.buttons()){
+          const id=button.dataset.desktopApp,position=data.desktopIcons?.[id];
+          if(position&&Number.isInteger(position.col)&&Number.isInteger(position.row)&&position.col>=0&&position.row>=0&&position.col<1000&&position.row<1000)desktopIcons[id]={col:position.col,row:position.row};
+        }
+        return {preferences:importedPreferences,folders:data.folders,files,trash,activeFile:files.some(file=>file.id===data.activeFile)?data.activeFile:null,todos:data.todos.map(todo=>({text:todo.text,done:todo.done})),workspace:{windows,active:seenWindows.has(layout.active)?layout.active:null},desktopIcons};
       },
       async import(file) {
         if(file.size>6000000){this.status('Backup is too large (maximum 6 MB).');return;}
@@ -1104,9 +1298,9 @@
         }catch{this.status('Browser storage is unavailable or full. The current workspace was kept.');}
       }
     };
-    // Hosted HTTPS builds can install and cache the shell. file:// stays standalone.
+    // Updates activate only after an explicit save-and-update action.
     const PWA = {
-      promptEvent:null,
+      promptEvent:null,registration:null,updating:false,
       init() {
         const hosted=location.protocol==='https:' || ['localhost','127.0.0.1','[::1]'].includes(location.hostname);
         if(!hosted)return;
@@ -1114,29 +1308,42 @@
         const appleIcon=document.createElement('link');appleIcon.rel='apple-touch-icon';appleIcon.href='./pwa/icon-192.png';document.head.append(appleIcon);
         window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();this.promptEvent=event;this.sync();});
         window.addEventListener('appinstalled',()=>{this.promptEvent=null;this.sync();});
-        if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>this.sync());
+        $('#pwa-update').addEventListener('click',()=>this.update());
+        $('#pwa-update-dismiss').addEventListener('click',()=>$('#pwa-update-banner').hidden=true);
+        if(!('serviceWorker' in navigator))return;
+        navigator.serviceWorker.addEventListener('controllerchange',()=>{if(this.updating)location.reload();});
+        navigator.serviceWorker.register('./sw.js').then(registration=>{
+          this.registration=registration;
+          const offer=()=>{if(registration.waiting&&navigator.serviceWorker.controller)$('#pwa-update-banner').hidden=false;};
+          offer();
+          registration.addEventListener('updatefound',()=>{
+            const worker=registration.installing;
+            worker?.addEventListener('statechange',()=>{if(worker.state==='installed')offer();});
+          });
+        }).catch(()=>this.sync());
+      },
+      update() {
+        if(!this.registration?.waiting)return;
+        Windows.saveWorkspace();
+        if(!Files.persist()){
+          $('#pwa-update-banner span').textContent='Storage is full. Download a workspace backup before updating.';
+          return;
+        }
+        this.updating=true;$('#pwa-update').disabled=true;
+        this.registration.waiting.postMessage({type:'SKIP_WAITING'});
       },
       render() {
         return `<section class="settings-section"><h3>Install this desktop</h3><p id="pwa-status" class="muted" style="font-size:11px;line-height:1.6;margin-bottom:12px"></p><button id="pwa-install" class="secondary" type="button" hidden>Install app</button></section>`;
       },
-      mount(element) {
-        $('#pwa-install',element).addEventListener('click',()=>this.install());
-        this.sync();
-      },
+      mount(element) {$('#pwa-install',element).addEventListener('click',()=>this.install());this.sync();},
       sync() {
-        const button=$('#pwa-install'),status=$('#pwa-status');
-        if(!button||!status)return;
+        const button=$('#pwa-install'),status=$('#pwa-status');if(!button||!status)return;
         const installed=matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
         button.hidden=installed||!this.promptEvent;
         status.textContent=installed?'Installed app. Your desktop also works offline.':location.protocol==='file:'?'Installation is available from the hosted HTTPS website.':this.promptEvent?'Install for a full-screen desktop and offline access.':'Use your browser menu to install this site when supported. Offline access begins after the first online visit.';
       },
       async install() {
-        if(!this.promptEvent)return;
-        const prompt=this.promptEvent;
-        this.promptEvent=null;
-        prompt.prompt();
-        await prompt.userChoice;
-        this.sync();
+        if(!this.promptEvent)return;const prompt=this.promptEvent;this.promptEvent=null;prompt.prompt();await prompt.userChoice;this.sync();
       }
     };
     const Calculator = {
@@ -1262,10 +1469,90 @@
         $('.tray-button').setAttribute('aria-label',`Volume, Wi-Fi, battery ${percent}%, ${state.toLowerCase()}`);
       }
     };
-    function renderAppGrid(query='') {
-      const matches=pinnedApps.filter(([,label])=>label.toLowerCase().includes(query.toLowerCase()));
-      $('#app-grid').innerHTML=matches.length?matches.map(([id,label,iconName])=>`<button class="grid-app" data-app="${id}">${appIcon(iconName)}<span>${label}</span></button>`).join(''):'<p class="empty-search">No matching apps.</p>';
-    }
+    // One search index covers apps, browser-local filenames, and settings.
+    const Search = {
+      results:[],selected:0,recent:[],
+      settings:[
+        {id:'background-settings',title:'Wallpaper',keywords:'background photos 壁纸 背景'},
+        {id:'appearance-settings',title:'Theme and taskbar',keywords:'dark light animations appearance 主题 任务栏'},
+        {id:'performance-settings',title:'Visual effects',keywords:'performance blur battery 性能 动画'},
+        {id:'display-settings',title:'Display',keywords:'screen size 显示 屏幕'},
+        {id:'backup-settings',title:'Workspace backup',keywords:'export import restore 备份 恢复'},
+      ],
+      entries() {
+        return [
+          ...pinnedApps.map(([id,title,icon])=>({type:'app',id,title,icon,detail:'App',keywords:Apps[id]?.title||title})),
+          ...this.settings.map(item=>({...item,type:'setting',icon:'settings',detail:'Settings'})),
+          ...Files.items.map(file=>({type:'file',id:file.id,title:file.name,icon:'notepad',detail:file.folder,keywords:file.folder}))
+        ];
+      },
+      record(type,id) {
+        const key=`${type}:${id}`;this.recent=[key,...this.recent.filter(value=>value!==key)].slice(0,8);
+        Storage.write('recent',this.recent);this.renderRecent();
+      },
+      renderRecent() {
+        const entries=this.entries();
+        const recent=this.recent.map(key=>entries.find(item=>`${item.type}:${item.id}`===key)).filter(Boolean).slice(0,4);
+        if(!recent.length){
+          if(this.defaultRecommendations)$('.recommend-grid').innerHTML=this.defaultRecommendations;
+          $('.recommended h3').textContent='Suggested';this.recentEntries=[];return;
+        }
+        $('.recommend-grid').innerHTML=recent.map((item,index)=>`<button class="recommend-item" data-recent="${index}">${icon(item.icon)}<span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.detail)}</small></span></button>`).join('');
+        this.recentEntries=recent;
+        $('.recommended h3').textContent='Recently opened';
+      },
+      render(query='') {
+        const value=query.trim().toLocaleLowerCase();
+        const searching=!!value;
+        $('#app-grid').hidden=searching;$('.recommended').hidden=searching;
+        $('#app-grid').previousElementSibling.hidden=searching;
+        const target=$('#search-results'),input=$('#start-search');
+        target.hidden=!searching;input.setAttribute('aria-expanded',String(searching));
+        input.removeAttribute('aria-activedescendant');
+        if(!searching){
+          $('#app-grid').innerHTML=pinnedApps.map(([id,label,iconName])=>`<button class="grid-app" data-app="${id}">${appIcon(iconName)}<span>${escapeHTML(label)}</span></button>`).join('');
+          this.results=[];$('#search-status').textContent='';this.renderRecent();return;
+        }
+        this.results=this.entries().map(item=>({...item,score:item.title.toLocaleLowerCase().startsWith(value)?0:1}))
+          .filter(item=>`${item.title} ${item.keywords||''}`.toLocaleLowerCase().includes(value))
+          .sort((a,b)=>a.score-b.score).slice(0,18);
+        this.selected=0;
+        target.innerHTML=this.results.length?this.results.map((item,index)=>`<button class="search-result" id="search-result-${index}" role="option" aria-selected="false" tabindex="-1" data-search-result="${index}">${appIcon(item.icon)}<span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.detail)}</small></span><span class="muted">↵</span></button>`).join(''):'<p class="empty-search">No matching apps, files or settings.</p>';
+        $('#search-status').textContent=`${this.results.length} results`;
+        this.highlight();
+      },
+      highlight() {
+        $$('#search-results [role="option"]').forEach((button,index)=>button.setAttribute('aria-selected',String(index===this.selected)));
+        const button=$(`#search-result-${this.selected}`);
+        if(button){$('#start-search').setAttribute('aria-activedescendant',button.id);button.scrollIntoView({block:'nearest'});}
+      },
+      open(item) {
+        if(!item)return;
+        Panels.close('start-menu');
+        if(item.type==='file')Files.openFile(item.id);
+        else if(item.type==='setting'){
+          launch('settings');this.record('setting',item.id);
+          const section=document.getElementById(item.id);section?.scrollIntoView({block:'nearest'});
+          section?.querySelector('button,input,select')?.focus({preventScroll:true});
+        }else launch(item.id);
+      },
+      init() {
+        const saved=Storage.read('recent',[]);
+        this.defaultRecommendations=$('.recommend-grid').innerHTML;
+        this.recent=Array.isArray(saved)?saved.filter(value=>typeof value==='string').slice(0,8):[];
+        const input=$('#start-search');
+        input.addEventListener('input',()=>this.render(input.value));
+        input.addEventListener('keydown',event=>{
+          if(event.isComposing)return;
+          if(['ArrowDown','ArrowUp'].includes(event.key)&&this.results.length){event.preventDefault();this.selected=(this.selected+(event.key==='ArrowDown'?1:-1)+this.results.length)%this.results.length;this.highlight();}
+          if(event.key==='Enter'){event.preventDefault();if(this.results.length)this.open(this.results[this.selected]);else if(!input.value.trim())$('#app-grid [data-app]')?.click();}
+          if(event.key==='Escape'&&input.value){event.preventDefault();event.stopPropagation();input.value='';this.render();}
+        });
+        $('#search-results').addEventListener('click',event=>{const button=event.target.closest('[data-search-result]');if(button)this.open(this.results[Number(button.dataset.searchResult)]);});
+        $('.recommend-grid').addEventListener('click',event=>{const button=event.target.closest('[data-recent]');if(button)this.open(this.recentEntries?.[Number(button.dataset.recent)]);});
+      }
+    };
+    function renderAppGrid(query='') { Search.render(query); }
     function launch(id) {
       if (Session.phase !== 'desktop') return;
       if(id==='calendar'){Panels.closeTransient();Calendar.reset();Panels.open('calendar-panel');}
@@ -1686,13 +1973,7 @@
     document.addEventListener('pointerdown',event=>{
       if(Session.phase!=='desktop')return;
       if(!event.target.closest('.panel,[data-panel]'))Panels.closeTransient();
-      if(!event.target.closest('.desktop-icon'))$$('.desktop-icon.selected').forEach(button=>{button.classList.remove('selected');button.setAttribute('aria-pressed','false');});
-    });
-    $$('.desktop-icon').forEach(button=>{
-      button.setAttribute('aria-pressed','false');
-      button.addEventListener('click',()=>{$$('.desktop-icon').forEach(item=>{item.classList.toggle('selected',item===button);item.setAttribute('aria-pressed',String(item===button));});});
-      button.addEventListener('dblclick',()=>launch(button.dataset.desktopApp));
-      button.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();launch(button.dataset.desktopApp);}});
+
     });
     $('#desktop').addEventListener('contextmenu',event=>{
       if(Session.phase!=='desktop')return;
@@ -1725,7 +2006,7 @@
         event.preventDefault();return;
       }
       if(event.key==='Escape'){
-        const panels=$$('.panel.open');if(panels.length)Panels.close(panels.at(-1).id,true);
+        const panels=$$('.panel.open');if(panels.length)Panels.close(panels.at(-1).id,true);else Desktop.select([]);
         $$('.snap-picker.open').forEach(picker=>picker.classList.remove('open'));
       }
       if(event.ctrlKey&&!event.shiftKey&&event.code==='Space'){event.preventDefault();Panels.toggle('start-menu');}
@@ -1734,8 +2015,7 @@
         if(/^[0-9.+%×÷−=]$/.test(mapped)||['C','⌫'].includes(mapped)){event.preventDefault();Calculator.press(mapped);}
       }
     });
-    $('#start-search').addEventListener('input',event=>renderAppGrid(event.target.value));
-    $('#start-search').addEventListener('keydown',event=>{if(event.key==='Enter')$('#app-grid [data-app]')?.click();});
+    Search.init();
     $('#calendar-prev').addEventListener('click',()=>{Calendar.view.setMonth(Calendar.view.getMonth()-1);Calendar.render();});
     $('#calendar-next').addEventListener('click',()=>{Calendar.view.setMonth(Calendar.view.getMonth()+1);Calendar.render();});
     $('#calendar-today').addEventListener('click',()=>Calendar.reset());
@@ -1770,7 +2050,7 @@
     ['keydown','keyup'].forEach(type=>$('#login-password').addEventListener(type,event=>{
       $('#caps-lock').hidden=!event.getModifierState('CapsLock');
     }));
-    window.addEventListener('resize',()=>{Windows.items.forEach(item=>Windows.clampWindow(item.element));if($('#display-size'))$('#display-size').textContent=`${innerWidth} × ${innerHeight}`;Panels.close('context-menu');});
+    window.addEventListener('resize',()=>{Desktop.layout();Windows.queueSave();Windows.items.forEach(item=>Windows.clampWindow(item.element));if($('#display-size'))$('#display-size').textContent=`${innerWidth} × ${innerHeight}`;Panels.close('context-menu');});
 
     // 13. Initialize the desktop behind the startup screens.
     for(let index=0;index<22;index++){
@@ -1778,7 +2058,7 @@
       particle.style.cssText=`left:${12+Math.random()*80}%;top:${20+Math.random()*80}%;--duration:${12+Math.random()*15}s;--delay:${-Math.random()*27}s`;
       $('#particles').append(particle);
     }
-    Files.init();renderTaskbar();Battery.init();Copilot.init();PWA.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
+    Files.init();Desktop.init();Performance.init();renderTaskbar();Battery.init();Copilot.init();PWA.init();renderAppGrid();renderTodos();Settings.apply();Notifications.render();updateClock();
     setInterval(updateClock,1000);
     Session.startBoot();
   })();

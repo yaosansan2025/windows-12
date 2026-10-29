@@ -1,0 +1,12 @@
+# Cloudflare uploads the website, not development tools or repository metadata.
+/.git/**
+/.github/**
+/.gitignore
+/.assetsignore
+/node_modules/**
+/scripts/**
+/tests/**
+/test-results/**
+/*.md
+/package.json
+/package-lock.json
